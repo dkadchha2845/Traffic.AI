@@ -1,0 +1,289 @@
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Audiowide&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 230 25% 4%;
+    --foreground: 210 40% 96%;
+
+    --card: 230 25% 7%;
+    --card-foreground: 210 40% 96%;
+
+    --popover: 230 25% 7%;
+    --popover-foreground: 210 40% 96%;
+
+    --primary: 270 80% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 230 20% 12%;
+    --secondary-foreground: 210 40% 96%;
+
+    --muted: 230 20% 12%;
+    --muted-foreground: 230 15% 50%;
+
+    --accent: 195 100% 50%;
+    --accent-foreground: 230 25% 4%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 160 84% 39%;
+    --success-foreground: 210 40% 98%;
+
+    --warning: 45 100% 51%;
+    --warning-foreground: 230 25% 4%;
+
+    --cyan: 185 100% 50%;
+    --cyan-foreground: 230 25% 4%;
+
+    --nebula: 280 70% 50%;
+    --nebula-foreground: 0 0% 100%;
+
+    --border: 230 20% 15%;
+    --input: 230 20% 15%;
+    --ring: 270 80% 60%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 230 25% 5%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 270 80% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 230 20% 12%;
+    --sidebar-accent-foreground: 210 40% 96%;
+    --sidebar-border: 230 20% 15%;
+    --sidebar-ring: 270 80% 60%;
+  }
+
+  .light {
+    --background: 220 20% 97%;
+    --foreground: 230 25% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 230 25% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 230 25% 10%;
+
+    --primary: 270 80% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 15% 92%;
+    --secondary-foreground: 230 25% 10%;
+
+    --muted: 220 15% 92%;
+    --muted-foreground: 230 10% 45%;
+
+    --accent: 195 90% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 160 84% 35%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 45 100% 45%;
+    --warning-foreground: 230 25% 10%;
+
+    --cyan: 185 90% 40%;
+    --cyan-foreground: 0 0% 100%;
+
+    --nebula: 280 60% 55%;
+    --nebula-foreground: 0 0% 100%;
+
+    --border: 220 15% 85%;
+    --input: 220 15% 85%;
+    --ring: 270 80% 55%;
+
+    --sidebar-background: 220 20% 95%;
+    --sidebar-foreground: 230 25% 10%;
+    --sidebar-primary: 270 80% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 15% 92%;
+    --sidebar-accent-foreground: 230 25% 10%;
+    --sidebar-border: 220 15% 85%;
+    --sidebar-ring: 270 80% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-card/40 backdrop-blur-2xl border border-border/30;
+    box-shadow: 0 0 30px hsl(var(--primary) / 0.05), inset 0 1px 0 hsl(210 40% 96% / 0.03);
+  }
+
+  .glass-strong {
+    @apply bg-card/70 backdrop-blur-3xl border border-border/40;
+    box-shadow: 0 0 40px hsl(var(--primary) / 0.08);
+  }
+
+  .glow-primary {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.4), 0 0 80px hsl(var(--primary) / 0.15), 0 0 120px hsl(var(--primary) / 0.05);
+  }
+
+  .glow-cyan {
+    box-shadow: 0 0 20px hsl(var(--cyan) / 0.4), 0 0 80px hsl(var(--cyan) / 0.15);
+  }
+
+  .glow-accent {
+    box-shadow: 0 0 20px hsl(var(--accent) / 0.3), 0 0 60px hsl(var(--accent) / 0.1);
+  }
+
+  .glow-nebula {
+    box-shadow: 0 0 30px hsl(var(--nebula) / 0.4), 0 0 80px hsl(var(--nebula) / 0.15);
+  }
+
+  .gradient-mesh {
+    background: 
+      radial-gradient(at 10% 10%, hsl(var(--nebula) / 0.15) 0px, transparent 50%),
+      radial-gradient(at 90% 20%, hsl(var(--primary) / 0.12) 0px, transparent 50%),
+      radial-gradient(at 50% 80%, hsl(var(--accent) / 0.08) 0px, transparent 50%),
+      radial-gradient(at 80% 60%, hsl(var(--cyan) / 0.06) 0px, transparent 40%);
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(var(--cyan)), hsl(var(--primary)), hsl(var(--nebula)));
+  }
+
+  .text-gradient-warm {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--cyan)));
+  }
+
+  .border-beam {
+    background: linear-gradient(90deg, transparent, hsl(var(--cyan) / 0.5), transparent);
+    animation: beam 3s infinite;
+  }
+
+  .shimmer {
+    background: linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--muted) / 0.5) 50%, hsl(var(--muted)) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  .card-hover {
+    @apply transition-all duration-500;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 20px 60px -15px hsl(var(--primary) / 0.25), 0 0 30px hsl(var(--primary) / 0.1);
+  }
+
+  .starfield {
+    background-image: 
+      radial-gradient(2px 2px at 20px 30px, hsl(var(--foreground) / 0.3), transparent),
+      radial-gradient(2px 2px at 40px 70px, hsl(var(--foreground) / 0.2), transparent),
+      radial-gradient(1px 1px at 90px 40px, hsl(var(--foreground) / 0.4), transparent),
+      radial-gradient(1px 1px at 130px 80px, hsl(var(--foreground) / 0.2), transparent),
+      radial-gradient(2px 2px at 160px 30px, hsl(var(--cyan) / 0.3), transparent),
+      radial-gradient(1px 1px at 200px 60px, hsl(var(--foreground) / 0.3), transparent),
+      radial-gradient(1px 1px at 50px 100px, hsl(var(--primary) / 0.3), transparent),
+      radial-gradient(1px 1px at 180px 120px, hsl(var(--foreground) / 0.2), transparent);
+    background-size: 220px 140px;
+    animation: starfield-drift 60s linear infinite;
+  }
+
+  .scanline {
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      hsl(var(--foreground) / 0.01) 2px,
+      hsl(var(--foreground) / 0.01) 4px
+    );
+    pointer-events: none;
+  }
+
+  .holographic-border {
+    position: relative;
+  }
+
+  .holographic-border > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .holographic-border::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    pointer-events: none;
+    z-index: 0;
+    background: linear-gradient(135deg, hsl(var(--cyan) / 0.5), hsl(var(--primary) / 0.5), hsl(var(--nebula) / 0.5), hsl(var(--cyan) / 0.5));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    background-size: 300% 300%;
+    animation: holographic 4s ease infinite;
+  }
+}
+
+@keyframes beam {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+}
+
+@keyframes starfield-drift {
+  0% { background-position: 0 0; }
+  100% { background-position: 220px 140px; }
+}
+
+@keyframes holographic {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes orbit {
+  0% { transform: rotate(0deg) translateX(80px) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(80px) rotate(-360deg); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-orbit {
+  animation: orbit 20s linear infinite;
+}
