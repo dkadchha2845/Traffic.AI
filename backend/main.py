@@ -70,11 +70,27 @@ async def telemetry_generator():
     """Generates continuous realistic telemetry metrics for the frontend SSE stream."""
     local_cpu = 24.0
     local_memory = 72.0
-    
+    from rl_model import predict_action
+
     while True:
         # Get real vehicle density from the live computer vision module
         vision_metrics = vision_tracker.get_latest_metrics()
         real_density = vision_metrics["density_percentage"]
+        vehicle_count = vision_metrics["vehicle_count"]
+
+        # Simulate lane queue distribution based on the total YOLO vehicle count
+        # In a fully rigged intersection, this would be 4 distinct camera ROI counts
+        base_queue = vehicle_count // 4
+        lanes = [
+            base_queue + random.randint(0, 3), # North
+            base_queue + random.randint(0, 3), # South
+            base_queue + random.randint(0, 2), # East
+            base_queue + random.randint(0, 2)  # West
+        ]
+        
+        # PPO Agent actively decides the optimal traffic physical light
+        rl_action = predict_action(lanes)
+        signal_state = "NS_GREEN" if rl_action == 0 else "EW_GREEN"
 
         # Simulate realistic fluctuations for Hardware metrics
         local_cpu = max(10.0, min(90.0, local_cpu + (random.random() - 0.5) * 10))
@@ -87,7 +103,10 @@ async def telemetry_generator():
             "network_latency": round(8.0 + random.random() * 10, 1),
             "active_nodes": int(1000 + random.random() * 300),
             "density": round(real_density, 1),
-            "vehicle_count": vision_metrics["vehicle_count"]
+            "vehicle_count": vehicle_count,
+            "signal_phase": signal_state,   # Integrated RL AI Controller
+            "ns_queue": lanes[0] + lanes[1],
+            "ew_queue": lanes[2] + lanes[3]
         }
         
         yield f"data: {json.dumps(payload)}\n\n"

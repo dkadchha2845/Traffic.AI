@@ -106,9 +106,13 @@ function GridFloor() {
   );
 }
 
-function Scene({ density, emergency }: { density: number; emergency: boolean }) {
+function Scene({ density, emergency, signalPhase }: { density: number; emergency: boolean; signalPhase: string }) {
   const carCount = Math.max(2, Math.floor(density / 12));
   const carColors = ["#a855f7", "#06b6d4", "#f59e0b", "#ef4444", "#22c55e", "#ec4899"];
+
+  // Extract light colors from AI
+  const nsColor = emergency ? "#22c55e" : (signalPhase === "NS_GREEN" ? "#22c55e" : "#ef4444");
+  const ewColor = emergency ? "#22c55e" : (signalPhase === "EW_GREEN" ? "#22c55e" : "#ef4444");
 
   return (
     <>
@@ -139,10 +143,12 @@ function Scene({ density, emergency }: { density: number; emergency: boolean }) 
       <Building position={[-3.5, 0, 2.5]} height={1.6} color="#1a1a3e" />
 
       {/* Traffic Lights */}
-      <TrafficLight position={[1.2, 0, 1.2]} color={emergency ? "#22c55e" : "#ef4444"} />
-      <TrafficLight position={[-1.2, 0, -1.2]} color={emergency ? "#22c55e" : "#22c55e"} />
-      <TrafficLight position={[1.2, 0, -1.2]} color={emergency ? "#22c55e" : "#fbbf24"} />
-      <TrafficLight position={[-1.2, 0, 1.2]} color={emergency ? "#22c55e" : "#ef4444"} />
+      {/* North/South Lights */}
+      <TrafficLight position={[-1.2, 0, -1.2]} color={nsColor} />
+      <TrafficLight position={[1.2, 0, 1.2]} color={nsColor} />
+      {/* East/West Lights */}
+      <TrafficLight position={[1.2, 0, -1.2]} color={ewColor} />
+      <TrafficLight position={[-1.2, 0, 1.2]} color={ewColor} />
 
       {/* Cars */}
       {Array.from({ length: carCount }).map((_, i) => {
@@ -172,7 +178,7 @@ function Scene({ density, emergency }: { density: number; emergency: boolean }) 
   );
 }
 
-export default function TrafficScene3D({ density = 65, emergency = false, className = "" }: { density?: number; emergency?: boolean; className?: string }) {
+export default function TrafficScene3D({ density = 65, emergency = false, signalPhase = "NS_GREEN", className = "" }: { density?: number; emergency?: boolean; signalPhase?: string; className?: string }) {
   return (
     <div className={`w-full h-full ${className}`}>
       <Canvas
@@ -181,7 +187,7 @@ export default function TrafficScene3D({ density = 65, emergency = false, classN
         gl={{ antialias: true, alpha: true }}
         style={{ background: "transparent" }}
       >
-        <Scene density={density} emergency={emergency} />
+        <Scene density={density} emergency={emergency} signalPhase={signalPhase} />
       </Canvas>
     </div>
   );

@@ -55,6 +55,7 @@ export default function Dashboard() {
   const [localMemory, setLocalMemory] = useState(72);
   const [localStorage, setLocalStorage] = useState(28);
   const [vehicleCount, setVehicleCount] = useState(0);
+  const [signalPhase, setSignalPhase] = useState("NS_GREEN");
 
   const { data: logs } = useSignalLogs();
   const { data: metrics } = usePerformanceMetrics();
@@ -96,6 +97,7 @@ export default function Dashboard() {
           setLocalMemory(data.memory_usage);
           setDensity(data.density);
           if (data.vehicle_count !== undefined) setVehicleCount(data.vehicle_count);
+          if (data.signal_phase) setSignalPhase(data.signal_phase);
 
           // We insert into Supabase for analytical historic charting, simulating edge-computing DB writes
           insertMetrics.mutate({
@@ -203,7 +205,7 @@ export default function Dashboard() {
                   <div className="text-sm font-mono text-muted-foreground animate-pulse">Loading 3D Scene...</div>
                 </div>
               }>
-                <TrafficScene3D density={density} emergency={emergency} />
+                <TrafficScene3D density={density} emergency={emergency} signalPhase={signalPhase} />
               </Suspense>
               {emergency && (
                 <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-destructive/20 backdrop-blur-sm rounded-lg px-3 py-1.5 text-xs font-mono text-destructive animate-pulse border border-destructive/30">
@@ -249,6 +251,13 @@ export default function Dashboard() {
               </div>
               <input type="range" min={10} max={95} value={density} onChange={(e) => setDensity(Number(e.target.value))}
                 className="w-full accent-primary" />
+            </div>
+
+            <div className="flex justify-between items-center bg-secondary/30 border border-border/20 rounded-xl p-3">
+              <span className="text-xs font-mono text-muted-foreground tracking-wider">ACTIVE PHASE:</span>
+              <span className={`text-xs font-mono font-bold px-3 py-1 rounded-full ${signalPhase === "NS_GREEN" ? "bg-success/20 text-success border border-success/30" : "bg-primary/20 text-primary border border-primary/30"}`}>
+                {signalPhase === "NS_GREEN" ? "N/S GREEN" : "E/W GREEN"} (AI CONTROL)
+              </span>
             </div>
 
             <button onClick={() => setEmergency(!emergency)}

@@ -3,6 +3,9 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import SupabaseVectorStore
 from supabase.client import Client, create_client
 from dotenv import load_dotenv
+import json
+
+from traffic_api import get_live_weather, get_live_traffic_congestion, get_historical_traffic_data
 
 load_dotenv()
 
@@ -51,24 +54,38 @@ def get_rag_response(query: str, user_id: str) -> str:
         # 1. Retrieve relevant scenarios from Supabase based on the query
         docs = vector_store.similarity_search(query, k=3)
         context = "\n\n".join([doc.page_content for doc in docs])
+        # Fetch Live JSON Parameters
+        live_weather = get_live_weather()
+        live_traffic = get_live_traffic_congestion()
+        historical_stats = get_historical_traffic_data()
         
+        live_json_context = json.dumps({
+            "current_weather": live_weather,
+            "current_congestion": live_traffic,
+            "historical_baseline": historical_stats
+        }, indent=2)
+
         # 2. Setup the LLM Prompt (MOCK LLM)
         prompt = f"""
         You are an intelligent Traffic Management Agent. 
-        Use the following real-life traffic scenarios from our database to formulate your response:
+        Use the following real-life traffic scenarios from our database and the live system telemetry to formulate your response:
         
-        <context>
+        <historical_scenario_context>
         {context}
-        </context>
+        </historical_scenario_context>
+        
+        <live_system_telemetry>
+        {live_json_context}
+        </live_system_telemetry>
 
         User Query: {query}
         
-        Provide a helpful, automated response integrating the dataset contexts.
+        Provide a helpful, automated response integrating the dataset contexts and current telemetry.
         """
         
         # 3. Generate response (MOCK)
         print("[MOCK] Bypassing OpenAI LLM Generation...")
-        mock_response = f"[MOCK AGENT INFO] Successfully retrieved similar scenarios from Supabase Matrix.\n\nSimulated AI Answer: Based on your query '{query}', I found contextual records regarding weather and congestion. I recommend altering the signal timings by +2 seconds."
+        mock_response = f"[MOCK AGENT INFO] Successfully retrieved similar scenarios from Supabase and live API datasets.\n\nSimulated AI Answer: Based on your query '{query}', the current weather is {live_weather['condition']} at {live_weather['temp']}°C, and live congestion is {live_traffic['congestion_level']}%. Given these real-time JSON parameters, I am adjusting signal timings automatically to optimize flow."
         return mock_response
         
     except Exception as e:
