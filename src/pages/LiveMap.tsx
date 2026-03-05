@@ -132,7 +132,7 @@ export default function LiveMap() {
                         <div className="flex flex-col gap-1 p-1">
                           <strong className="text-sm">{intersectionData.name}</strong>
                           <span>Geofence: BLR-GRID-CORE</span>
-                          <span>Live Density: {density.toFixed(1)}%</span>
+                          <span>Live Density: {Number(density || 0).toFixed(1)}%</span>
                           <span>Signal Opt: {(data?.optimal_signal_duration || 30).toFixed(1)}s</span>
                           <span>Agent: active</span>
                         </div>
@@ -177,11 +177,17 @@ export default function LiveMap() {
               </h3>
               <div className="space-y-2 text-xs">
                 {liveIncidents.length > 0 ? (
-                  liveIncidents.slice(0, 3).map((inc, i) => (
-                    <div key={i} className="bg-destructive/10 border border-destructive/20 rounded-xl px-3 py-2 text-destructive">
-                      <strong>Incident Detected:</strong> {inc.properties?.iconCategory === 1 ? 'Accident' : 'Roadwork / Jam'} near [{inc.geometry?.coordinates?.[0]?.[1]?.toFixed(3)}, {inc.geometry?.coordinates?.[0]?.[0]?.toFixed(3)}]
-                    </div>
-                  ))
+                  liveIncidents.slice(0, 3).map((inc, i) => {
+                    const coords = inc.geometry?.coordinates;
+                    const lat = (Array.isArray(coords) && Array.isArray(coords[0])) ? coords[0][1] : (Array.isArray(coords) ? coords[1] : 0);
+                    const lng = (Array.isArray(coords) && Array.isArray(coords[0])) ? coords[0][0] : (Array.isArray(coords) ? coords[0] : 0);
+
+                    return (
+                      <div key={i} className="bg-destructive/10 border border-destructive/20 rounded-xl px-3 py-2 text-destructive">
+                        <strong>Incident Detected:</strong> {inc.properties?.iconCategory === 1 ? 'Accident' : 'Roadwork / Jam'} near [{Number(lat || 0).toFixed(3)}, {Number(lng || 0).toFixed(3)}]
+                      </div>
+                    );
+                  })
                 ) : (
                   <div className="bg-success/10 border border-success/20 rounded-xl px-3 py-2 text-success">
                     No active geo-spatial incidents detected on grid.

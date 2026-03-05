@@ -107,7 +107,8 @@ function GridFloor() {
 }
 
 function Scene({ density, emergency, signalPhase }: { density: number; emergency: boolean; signalPhase: string }) {
-  const carCount = Math.max(2, Math.floor(density / 12));
+  const safeDensity = Number.isFinite(density) ? density : 65;
+  const carCount = Math.max(2, Math.floor(safeDensity / 12));
   const carColors = ["#a855f7", "#06b6d4", "#f59e0b", "#ef4444", "#22c55e", "#ec4899"];
 
   // Extract light colors from AI

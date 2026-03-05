@@ -172,9 +172,9 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-4 font-mono text-xs">
-              <span className="flex items-center gap-1.5"><Cpu className="w-4 h-4 text-primary" /> {cpu.toFixed(0)}%</span>
-              <span className="flex items-center gap-1.5"><HardDrive className="w-4 h-4 text-cyan" /> {(metrics?.network_latency ?? 12).toFixed(0)}ms</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-success" /> {(metrics?.uptime ?? 99.9).toFixed(1)}%</span>
+              <span className="flex items-center gap-1.5"><Cpu className="w-4 h-4 text-primary" /> {Number(cpu || 0).toFixed(0)}%</span>
+              <span className="flex items-center gap-1.5"><HardDrive className="w-4 h-4 text-cyan" /> {Number(metrics?.network_latency || 12).toFixed(0)}ms</span>
+              <span className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-success" /> {Number(metrics?.uptime || 99.9).toFixed(1)}%</span>
             </div>
             <Button asChild variant="outline" size="sm">
               <Link to="/settings">Profile Settings</Link>
@@ -262,8 +262,8 @@ export default function Dashboard() {
               <div className="flex justify-between text-xs font-mono mb-2">
                 <span className="text-muted-foreground tracking-wider">DENSITY</span>
                 <span className="flex items-center gap-3">
-                  <span className="text-muted-foreground">VEHICLES: <span className="text-foreground">{vehicleCount}</span></span>
-                  <span className="text-primary font-bold">{density.toFixed(0)}%</span>
+                  <span className="text-muted-foreground">VEHICLES: <span className="text-foreground">{vehicleCount || 0}</span></span>
+                  <span className="text-primary font-bold">{Number(density || 0).toFixed(0)}%</span>
                 </span>
               </div>
               <input type="range" min={10} max={95} value={density} onChange={(e) => setDensity(Number(e.target.value))}
@@ -308,13 +308,19 @@ export default function Dashboard() {
               </span>
             </div>
             <div className="bg-background/30 rounded-xl p-4 font-mono text-xs space-y-1.5 h-64 overflow-y-auto border border-border/20">
-              {logs && logs.length > 0 ? logs.map((log) => (
-                <div key={log.id} className="flex gap-3">
-                  <span className="text-muted-foreground shrink-0">[{format(new Date(log.created_at), "HH:mm:ss")}]</span>
-                  <span className={`font-bold shrink-0 ${logTypeColors[log.log_type] || "text-foreground"}`}>{log.log_type}:</span>
-                  <span className="text-foreground">{log.message}</span>
-                </div>
-              )) : (
+              {logs && logs.length > 0 ? logs.map((log) => {
+                const logDate = log.created_at ? new Date(log.created_at) : new Date();
+                const isValidDate = !isNaN(logDate.getTime());
+                return (
+                  <div key={log.id} className="flex gap-3">
+                    <span className="text-muted-foreground shrink-0">
+                      [{isValidDate ? format(logDate, "HH:mm:ss") : "--:--:--"}]
+                    </span>
+                    <span className={`font-bold shrink-0 ${logTypeColors[log.log_type] || "text-foreground"}`}>{log.log_type || "LOG"}:</span>
+                    <span className="text-foreground">{log.message}</span>
+                  </div>
+                );
+              }) : (
                 <p className="text-muted-foreground">No logs yet. Start simulation to generate real-time logs.</p>
               )}
             </div>
@@ -415,9 +421,9 @@ export default function Dashboard() {
                     <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                       <circle cx="18" cy="18" r="15.9" fill="none" stroke="hsl(var(--secondary))" strokeWidth="3" />
                       <circle cx="18" cy="18" r="15.9" fill="none" stroke="currentColor" strokeWidth="3"
-                        className={r.color} strokeDasharray={`${r.val} ${100 - r.val}`} strokeLinecap="round" />
+                        className={r.color} strokeDasharray={`${Number(r.val || 0).toFixed(0)} ${100 - Number(r.val || 0)}`} strokeLinecap="round" />
                     </svg>
-                    <span className="absolute inset-0 flex items-center justify-center text-xs font-mono font-bold text-foreground">{r.val.toFixed(0)}%</span>
+                    <span className="absolute inset-0 flex items-center justify-center text-xs font-mono font-bold text-foreground">{Number(r.val || 0).toFixed(0)}%</span>
                   </div>
                   <span className="text-xs text-muted-foreground font-mono">{r.label}</span>
                 </div>
