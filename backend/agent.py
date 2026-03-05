@@ -112,3 +112,24 @@ def ingest_real_life_scenario(text_content: str, metadata: dict = None):
         if "insufficient_quota" in str(e) or "429" in str(e):
             raise Exception("OpenAI Quota Exceeded. The AI agent cannot generate embeddings for ingestion because the OpenAI account lacks active billing.")
         raise e
+
+async def auto_ingest_live_alerts():
+    """
+    Phase 12: Nightly/Hourly background task to fetch LIVE incidents and embed them into pgvector RAG memory.
+    """
+    import asyncio
+    while True:
+        try:
+            weather = get_live_weather()
+            congestion = get_live_traffic_congestion(12.9716, 77.5946)
+            
+            # Translate tabular API metrics to natural language blocks for PGVector storage
+            w_txt = f"CITY EVENT MEMORY: Current weather recorded as {weather['condition']} at {weather['temp']}C. Wind speed {weather['wind_speed']}m/s."
+            t_txt = f"CITY EVENT MEMORY: Core Bangalore Grid congestion spiked to {congestion['congestion_level']}%. Status: {congestion['traffic_flow']}."
+            
+            ingest_real_life_scenario(w_txt, metadata={"type": "live_weather"})
+            ingest_real_life_scenario(t_txt, metadata={"type": "live_traffic"})
+            
+            await asyncio.sleep(3600) # Only push to semantic embedding space hourly
+        except Exception as e:
+            await asyncio.sleep(3600)

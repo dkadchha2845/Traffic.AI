@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useState, useEffect, useCallback, Suspense, lazy } from "react";
+import { useState, useEffect, useCallback, Suspense, lazy, useRef } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,6 +57,8 @@ export default function Dashboard() {
   const [vehicleCount, setVehicleCount] = useState(0);
   const [signalPhase, setSignalPhase] = useState("NS_GREEN");
 
+  const wsRef = useRef<WebSocket | null>(null);
+
   const { data: logs } = useSignalLogs();
   const { data: metrics } = usePerformanceMetrics();
   const insertLog = useInsertSignalLog();
@@ -81,14 +83,16 @@ export default function Dashboard() {
   }, [insertLog]);
 
   useEffect(() => {
-    if (!simRunning || !user) return;
+    if (!user) return;
 
-    const logIv = setInterval(generateLog, 4000);
+    // Log the initiation of the real telemetry stream
+    insertLog.mutate({ agent_name: "SensorAgent", action: "connect", message: "Established Bi-Directional WebSocket to Bangalore CityOS Feed.", log_type: "INFO" });
 
-    // Connect to the Python Backend's live Server-Sent Events (SSE) telemetry stream
-    const eventSource = new EventSource("http://localhost:8000/api/stream/telemetry");
+    // Connect to the Python Backend's live bi-directional WebSocket telemetry stream
+    const ws = new WebSocket("ws://localhost:8000/ws/telemetry");
+    wsRef.current = ws;
 
-    eventSource.onmessage = (event) => {
+    ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         if (data.type === "telemetry") {
@@ -99,30 +103,32 @@ export default function Dashboard() {
           if (data.vehicle_count !== undefined) setVehicleCount(data.vehicle_count);
           if (data.signal_phase) setSignalPhase(data.signal_phase);
 
-          // We insert into Supabase for analytical historic charting, simulating edge-computing DB writes
+          // We insert into Supabase for analytical historic charting, using pure telemetry
+          const currentThroughput = data.vehicle_count > 0 ? (100 - data.density) : 100;
+
           insertMetrics.mutate({
             cpu_load: data.cpu_load,
             memory_usage: data.memory_usage,
             storage_usage: localStorage,
             network_latency: data.network_latency,
             active_nodes: data.active_nodes,
-            ai_efficiency: parseFloat((80 + Math.random() * 18).toFixed(1)),
-            traditional_efficiency: parseFloat((50 + Math.random() * 20).toFixed(1)),
+            ai_efficiency: parseFloat(currentThroughput.toFixed(1)),
+            traditional_efficiency: 50.0, // Baseline static
           });
 
-          // Insert density reading for historic traffic
+          // Insert density reading for historic traffic using real YOLO state
           insertTraffic.mutate({
-            intersection_id: `A-${Math.floor(Math.random() * 9) + 1}`,
-            north: Math.floor(Math.random() * 50),
-            south: Math.floor(Math.random() * 50),
-            east: Math.floor(Math.random() * 50),
-            west: Math.floor(Math.random() * 50),
+            intersection_id: "BLR-CORE-1", // Map to the primary camera node
+            north: data.ns_queue || 0,
+            south: data.ns_queue || 0,
+            east: data.ew_queue || 0,
+            west: data.ew_queue || 0,
             weather: mode === "RAIN" ? "rain" : "clear",
             peak_hour: mode === "PEAK",
             density: data.density,
             mode,
             emergency_active: emergency,
-            optimal_signal_duration: parseFloat((20 + Math.random() * 40).toFixed(1)),
+            optimal_signal_duration: data.signal_phase === "NS_GREEN" ? 45.0 : 30.0,
           });
         }
       } catch (e) {
@@ -130,16 +136,27 @@ export default function Dashboard() {
       }
     };
 
-    eventSource.onerror = (error) => {
-      console.error("SSE stream error", error);
-      eventSource.close();
+    ws.onerror = (error) => {
+      console.error("WebSocket stream error", error);
+      ws.close();
     };
 
     return () => {
-      clearInterval(logIv);
-      eventSource.close();
+      ws.close();
+      wsRef.current = null;
+      insertLog.mutate({ agent_name: "SensorAgent", action: "disconnect", message: "WebSocket stream terminated.", log_type: "WARN" });
     };
-  }, [simRunning, user, mode, emergency, insertMetrics, insertTraffic, localStorage, generateLog]);
+  }, [user, mode, insertMetrics, insertTraffic, localStorage, insertLog]);
+
+  useEffect(() => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: "command",
+        simRunning,
+        emergency,
+      }));
+    }
+  }, [simRunning, emergency]);
 
   return (
     <div className="min-h-screen pt-20 pb-8 px-4">

@@ -1,13 +1,39 @@
 import { motion } from "framer-motion";
-import { FileText, Download, Calendar, TrendingUp, Clock, Filter } from "lucide-react";
+import { FileText, Download, Calendar, TrendingUp, Clock, Filter, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTrafficData } from "@/hooks/useTrafficDB";
 import { format } from "date-fns";
+import { useState } from "react";
 
 const fadeIn = { hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
 
 export default function Reports() {
   const { data: trafficData } = useTrafficData();
+  const [downloading, setDownloading] = useState<string | null>(null);
+
+  const handleDownloadReport = async (title: string) => {
+    try {
+      setDownloading(title);
+      const response = await fetch("http://localhost:8000/api/report/generate", {
+        method: "GET"
+      });
+      if (!response.ok) throw new Error("Failed to generate report");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${title.replace(/\s+/g, '_')}_${format(new Date(), "yyyyMMdd")}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Failed to download PDF", e);
+    } finally {
+      setDownloading(null);
+    }
+  };
 
   const reports = [
     { title: "Daily Traffic Summary", date: "2026-02-28", status: "Complete", type: "Auto-generated", severity: "Normal" },
@@ -86,8 +112,15 @@ export default function Reports() {
                     </td>
                     <td className="py-4 pr-4 font-mono text-xs text-muted-foreground">{r.status}</td>
                     <td className="py-4 text-right">
-                      <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 text-xs gap-1">
-                        <Download className="w-3 h-3" /> PDF
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-primary hover:text-primary/80 text-xs gap-1"
+                        onClick={() => handleDownloadReport(r.title)}
+                        disabled={downloading === r.title}
+                      >
+                        {downloading === r.title ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                        {downloading === r.title ? "GEN..." : "PDF"}
                       </Button>
                     </td>
                   </tr>

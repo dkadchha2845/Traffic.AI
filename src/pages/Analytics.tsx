@@ -7,13 +7,6 @@ import { format } from "date-fns";
 
 const fadeIn = { hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
 
-const heatColors: Record<string, string> = {
-  low: "bg-success/30",
-  med: "bg-warning/30",
-  high: "bg-warning/60",
-  critical: "bg-destructive/60",
-};
-
 export default function Analytics() {
   const { data: metricsData } = useHistoricalPerformanceMetrics();
   const { data: logsData } = useSignalLogs();
@@ -34,27 +27,20 @@ export default function Analytics() {
     ? (latestMetrics.ai_efficiency - latestMetrics.traditional_efficiency).toFixed(1)
     : "0.0";
 
-  // Generate dynamic heatmap data from traffic table based on geographic quadrants
-  const generateHeatmap = () => {
-    // 4x7 mock grid mapped from real data intensity
-    const intensityLevels = ["low", "low", "med", "high", "critical"];
-    const baseGrid = Array(4).fill(null).map(() => Array(7).fill("low"));
-    if (trafficData) {
-      trafficData.forEach((node, idx) => {
-        const row = idx % 4;
-        const col = idx % 7;
-        let level = "low";
-        if (node.density > 80) level = "critical";
-        else if (node.density > 60) level = "high";
-        else if (node.density > 40) level = "med";
-
-        if (baseGrid[row]) baseGrid[row][col] = level;
-      });
-    }
-    return baseGrid;
+  // Calculate true physical quad-directional load
+  const calculateLaneDistribution = () => {
+    if (!trafficData || trafficData.length === 0) return { north: 0, south: 0, east: 0, west: 0 };
+    const latest = trafficData[0];
+    const total = (latest.north + latest.south + latest.east + latest.west) || 1;
+    return {
+      north: Math.round((latest.north / total) * 100),
+      south: Math.round((latest.south / total) * 100),
+      east: Math.round((latest.east / total) * 100),
+      west: Math.round((latest.west / total) * 100),
+    };
   };
 
-  const heatmapData = generateHeatmap();
+  const queues = calculateLaneDistribution();
 
   return (
     <div className="min-h-screen pt-20 pb-8 px-4">
@@ -144,25 +130,32 @@ export default function Analytics() {
 
         {/* Bottom Row */}
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Heatmap */}
+          {/* Physical Lane Loading */}
           <motion.div variants={fadeIn} initial="hidden" animate="visible" className="glass rounded-xl p-5 border-border/50">
             <h3 className="font-heading font-semibold text-foreground mb-4 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-warning" /> City Sectors Heatmap
+              <AlertTriangle className="w-4 h-4 text-warning" /> Quad-Directional Flow
             </h3>
-            <div className="space-y-2">
-              {heatmapData.map((row, ri) => (
-                <div key={ri} className="flex gap-2">
-                  {row.map((cell, ci) => (
-                    <div key={ci} className={`flex-1 aspect-[4/3] rounded border border-white/5 ${heatColors[cell]} flex items-center justify-center text-[10px] font-mono opacity-80 backdrop-blur-sm transition-all hover:scale-110 hover:opacity-100 cursor-pointer`}>
-                      {cell === "critical" && "⚠"}
-                    </div>
-                  ))}
-                </div>
-              ))}
+            <div className="grid grid-cols-2 gap-4 mt-8">
+              <div className="flex flex-col items-center justify-center p-4 bg-primary/10 rounded border border-primary/20">
+                <span className="text-xs text-muted-foreground uppercase mb-1">North</span>
+                <span className="text-2xl font-mono">{queues.north}%</span>
+              </div>
+              <div className="flex flex-col items-center justify-center p-4 bg-primary/10 rounded border border-primary/20">
+                <span className="text-xs text-muted-foreground uppercase mb-1">South</span>
+                <span className="text-2xl font-mono">{queues.south}%</span>
+              </div>
+              <div className="flex flex-col items-center justify-center p-4 bg-primary/10 rounded border border-primary/20">
+                <span className="text-xs text-muted-foreground uppercase mb-1">East</span>
+                <span className="text-2xl font-mono">{queues.east}%</span>
+              </div>
+              <div className="flex flex-col items-center justify-center p-4 bg-primary/10 rounded border border-primary/20">
+                <span className="text-xs text-muted-foreground uppercase mb-1">West</span>
+                <span className="text-2xl font-mono">{queues.west}%</span>
+              </div>
             </div>
-            <div className="flex justify-between mt-3 text-xs text-muted-foreground">
-              <span>Grid Mapping</span>
-              <span className="text-warning font-mono">Live Tracking</span>
+            <div className="flex justify-between mt-8 text-xs text-muted-foreground border-t border-border/30 pt-3">
+              <span>Primary Node: BLR-CORE-1</span>
+              <span className="text-success font-mono">Live YOLO Vision</span>
             </div>
           </motion.div>
 
