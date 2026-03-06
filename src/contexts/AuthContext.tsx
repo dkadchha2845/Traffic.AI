@@ -94,19 +94,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
+    // Safety timeout: If auth takes more than 5 seconds, stop the loading spinner
+    // This prevents a blank screen if Supabase is slow or the connection hangs.
+    const timeout = setTimeout(() => {
+      setLoading((prev) => {
+        if (prev) {
+          console.warn("Auth initialization timed out. Releasing loading state.");
+          return false;
+        }
+        return prev;
+      });
+    }, 5000);
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       syncSession(session);
       setLoading(false);
+      clearTimeout(timeout);
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      syncSession(session);
-      setLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        syncSession(session);
+      })
+      .catch((err) => {
+        console.error("Auth session retrieval error:", err);
+      })
+      .finally(() => {
+        setLoading(false);
+        clearTimeout(timeout);
+      });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, [syncSession]);
 
   // ── Fallback sign-up (XHR) ────────────────────────────────

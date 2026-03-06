@@ -32,14 +32,19 @@ function FloatingParticles({ count = 50 }: { count?: number }) {
   );
 }
 
+import SafeCanvas from "./SafeCanvas";
+
 export default function Starfield({ className = "" }: { className?: string }) {
   return (
     <div className={`absolute inset-0 ${className}`} style={{ pointerEvents: "none" }}>
-      <Canvas camera={{ position: [0, 0, 5], fov: 60 }}>
+      <SafeCanvas
+        camera={{ position: [0, 0, 5], fov: 60 }}
+        componentName="Starfield Background"
+      >
         <ambientLight intensity={0.1} />
         <Stars radius={100} depth={50} count={3000} factor={4} saturation={0.5} fade speed={0.5} />
         <FloatingParticles count={80} />
-      </Canvas>
+      </SafeCanvas>
     </div>
   );
 }

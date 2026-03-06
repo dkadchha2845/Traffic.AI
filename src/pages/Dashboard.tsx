@@ -61,9 +61,9 @@ export default function Dashboard() {
 
   const { data: logs } = useSignalLogs();
   const { data: metrics } = usePerformanceMetrics();
-  const insertLog = useInsertSignalLog();
-  const insertMetrics = useInsertPerformanceMetrics();
-  const insertTraffic = useInsertTrafficData();
+  const { mutate: insertLog } = useInsertSignalLog();
+  const { mutate: insertMetrics } = useInsertPerformanceMetrics();
+  const { mutate: insertTraffic } = useInsertTrafficData();
 
   const cpu = metrics?.cpu_load ?? localCpu;
   const memory = metrics?.memory_usage ?? localMemory;
@@ -79,18 +79,20 @@ export default function Dashboard() {
       .replace("{p}", String(Math.floor(Math.random() * 30) + 10))
       .replace("{e}", (85 + Math.random() * 14).toFixed(1));
 
-    insertLog.mutate({ agent_name: tpl.agent, action: tpl.action, message: msg, log_type: tpl.type as "INFO" | "SUCCESS" | "LEARN" });
+    insertLog({ agent_name: tpl.agent, action: tpl.action, message: msg, log_type: tpl.type as "INFO" | "SUCCESS" | "LEARN" });
   }, [insertLog]);
 
   useEffect(() => {
     if (!user) return;
 
-    // Log the initiation of the real telemetry stream
-    insertLog.mutate({ agent_name: "SensorAgent", action: "connect", message: "Established Bi-Directional WebSocket to Bangalore CityOS Feed.", log_type: "INFO" });
-
     // Connect to the Python Backend's live bi-directional WebSocket telemetry stream
     const ws = new WebSocket("ws://localhost:8000/ws/telemetry");
     wsRef.current = ws;
+
+    ws.onopen = () => {
+      // Log the initiation of the real telemetry stream only once when open
+      insertLog({ agent_name: "SensorAgent", action: "connect", message: "Established Bi-Directional WebSocket to Bangalore CityOS Feed.", log_type: "INFO" });
+    };
 
     ws.onmessage = (event) => {
       try {
@@ -106,7 +108,7 @@ export default function Dashboard() {
           // We insert into Supabase for analytical historic charting, using pure telemetry
           const currentThroughput = data.vehicle_count > 0 ? (100 - data.density) : 100;
 
-          insertMetrics.mutate({
+          insertMetrics({
             cpu_load: data.cpu_load,
             memory_usage: data.memory_usage,
             storage_usage: localStorage,
@@ -117,7 +119,7 @@ export default function Dashboard() {
           });
 
           // Insert density reading for historic traffic using real YOLO state
-          insertTraffic.mutate({
+          insertTraffic({
             intersection_id: "BLR-CORE-1", // Map to the primary camera node
             north: data.ns_queue || 0,
             south: data.ns_queue || 0,
@@ -144,9 +146,9 @@ export default function Dashboard() {
     return () => {
       ws.close();
       wsRef.current = null;
-      insertLog.mutate({ agent_name: "SensorAgent", action: "disconnect", message: "WebSocket stream terminated.", log_type: "WARN" });
+      insertLog({ agent_name: "SensorAgent", action: "disconnect", message: "WebSocket stream terminated.", log_type: "WARN" });
     };
-  }, [user, mode, insertMetrics, insertTraffic, localStorage, insertLog]);
+  }, [user, mode, insertMetrics, insertTraffic, localStorage, insertLog, emergency]);
 
   useEffect(() => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {

@@ -179,17 +179,20 @@ function Scene({ density, emergency, signalPhase }: { density: number; emergency
   );
 }
 
+import SafeCanvas from "./SafeCanvas";
+
 export default function TrafficScene3D({ density = 65, emergency = false, signalPhase = "NS_GREEN", className = "" }: { density?: number; emergency?: boolean; signalPhase?: string; className?: string }) {
   return (
     <div className={`w-full h-full ${className}`}>
-      <Canvas
+      <SafeCanvas
         shadows
         camera={{ position: [5, 4, 5], fov: 45 }}
         gl={{ antialias: true, alpha: true }}
         style={{ background: "transparent" }}
+        componentName="Traffic Simulation 3D"
       >
         <Scene density={density} emergency={emergency} signalPhase={signalPhase} />
-      </Canvas>
+      </SafeCanvas>
     </div>
   );
 }

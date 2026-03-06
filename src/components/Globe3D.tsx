@@ -160,10 +160,16 @@ function PulseRing({ position, delay }: { position: THREE.Vector3; delay: number
   );
 }
 
+import SafeCanvas from "./SafeCanvas";
+
 export default function Globe3D({ className = "" }: { className?: string }) {
   return (
     <div className={`w-full h-full ${className}`}>
-      <Canvas camera={{ position: [0, 1.5, 5], fov: 40 }} dpr={[1, 1.5]}>
+      <SafeCanvas
+        camera={{ position: [0, 1.5, 5], fov: 40 }}
+        dpr={[1, 1.5]}
+        componentName="Global Intelligence Globe"
+      >
         <ambientLight intensity={0.5} />
         <GlobeWireframe />
         <OrbitControls
@@ -173,7 +179,7 @@ export default function Globe3D({ className = "" }: { className?: string }) {
           minPolarAngle={Math.PI * 0.3}
           maxPolarAngle={Math.PI * 0.7}
         />
-      </Canvas>
+      </SafeCanvas>
     </div>
   );
 }

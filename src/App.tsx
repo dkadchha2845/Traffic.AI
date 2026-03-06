@@ -53,6 +53,8 @@ function AnimatedRoutes() {
   );
 }
 
+import ErrorBoundary from "./components/ErrorBoundary";
+
 const App = () => {
   const [splashDone, setSplashDone] = useState(false);
 
@@ -62,12 +64,14 @@ const App = () => {
         <TooltipProvider>
           <BrowserRouter>
             <AuthProvider>
-              <Toaster />
-              <Sonner />
-              <CursorParticles />
-              <Navbar />
-              <AnimatedRoutes />
-              {!splashDone && <SplashScreen onComplete={() => setSplashDone(true)} />}
+              <ErrorBoundary name="App Core">
+                <Toaster />
+                <Sonner />
+                <CursorParticles />
+                <Navbar />
+                <AnimatedRoutes />
+                {!splashDone && <SplashScreen onComplete={() => setSplashDone(true)} />}
+              </ErrorBoundary>
             </AuthProvider>
           </BrowserRouter>
         </TooltipProvider>
