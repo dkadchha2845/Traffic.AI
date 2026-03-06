@@ -28,6 +28,8 @@ import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import BangaloreTraffic from "./pages/BangaloreTraffic";
 import CameraFeed from "./pages/CameraFeed";
+import DigitalTwin from "./pages/DigitalTwin";
+import TrafficPrediction from "./pages/TrafficPrediction";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +53,8 @@ function AnimatedRoutes() {
         <Route path="/admin" element={<ProtectedRoute><PageTransition><Admin /></PageTransition></ProtectedRoute>} />
         <Route path="/bangalore" element={<ProtectedRoute><PageTransition><BangaloreTraffic /></PageTransition></ProtectedRoute>} />
         <Route path="/cameras" element={<ProtectedRoute><PageTransition><CameraFeed /></PageTransition></ProtectedRoute>} />
+        <Route path="/twin" element={<ProtectedRoute><PageTransition><DigitalTwin /></PageTransition></ProtectedRoute>} />
+        <Route path="/predict" element={<ProtectedRoute><PageTransition><TrafficPrediction /></PageTransition></ProtectedRoute>} />
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
       </Routes>
     </AnimatePresence>

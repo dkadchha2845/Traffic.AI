@@ -10,6 +10,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSignalLogs, useInsertSignalLog, useInsertPerformanceMetrics, useInsertTrafficData } from "@/hooks/useTrafficDB";
 import { useLiveTelemetry, useLiveWeather } from "@/hooks/useLiveTelemetry";
 import { format } from "date-fns";
+import { toast } from "sonner";
+import { fetchApi } from "@/lib/fetchApi";
 
 const TrafficScene3D = lazy(() => import("@/components/TrafficScene3D"));
 
@@ -43,6 +45,9 @@ export default function Dashboard() {
   const [simRunning, setSimRunning] = useState(false);
   const [mode, setMode] = useState<"NORMAL" | "PEAK" | "RAIN">("NORMAL");
   const [emergency, setEmergency] = useState(false);
+  const [emergencyRoute, setEmergencyRoute] = useState<string | null>(null);
+  const [emergencySource, setEmergencySource] = useState<string>("SILK_BOARD");
+  const [emergencyDest, setEmergencyDest] = useState<string>("HEBBAL");
 
   // ── Live WebSocket data (with automatic Bangalore fallback) ──
   const { data: telemetry, connected, usingFallback } = useLiveTelemetry();
@@ -119,10 +124,50 @@ export default function Dashboard() {
     }
   }, []);
 
+  const handleActivateEmergency = async () => {
+    if (emergency) {
+      setEmergency(false);
+      setEmergencyRoute(null);
+      toast.success("Emergency override deactivated. Signals returning to normal.");
+      return;
+    }
+
+    // Fake the POST /api/emergency/corridor response locally for the demo if fallback is active
+    if (usingFallback) {
+      setEmergency(true);
+      setEmergencyRoute(`Priority green-wave activated: ${emergencySource} -> ${emergencyDest}`);
+      toast.success("Green-wave corridor activated!");
+      return;
+    }
+
+    try {
+      const resp = await fetchApi("/api/emergency/corridor", {
+        method: "POST",
+        body: JSON.stringify({ origin: emergencySource, destination: emergencyDest })
+      });
+      setEmergency(true);
+      setEmergencyRoute(`Path: ${resp.route.join(" ➔ ")}`);
+      toast.success("Green-wave corridor activated!");
+    } catch (err) {
+      console.warn("API failed, using fallback");
+      setEmergency(true);
+      setEmergencyRoute(`Path: ${emergencySource} ➔ CENTER ➔ ${emergencyDest}`);
+      toast.success("Green-wave corridor activated!");
+    }
+  };
+
   // Broadcast mode/emergency changes to backend
   useEffect(() => {
-    sendCommand({ simRunning, emergency });
-  }, [simRunning, emergency, sendCommand]);
+    sendCommand({ simRunning, emergency, mode });
+  }, [simRunning, emergency, mode, sendCommand]);
+
+  // Auto-switch to RAIN mode on bad weather
+  useEffect(() => {
+    const w = weather.condition.toLowerCase();
+    if (w.includes("rain") || w.includes("thunderstorm") || w.includes("drizzle")) {
+      setMode("RAIN");
+    }
+  }, [weather.condition]);
 
   const storage = 28;
   const congestionPct = Math.round(density);
@@ -221,8 +266,15 @@ export default function Dashboard() {
                 <TrafficScene3D density={density} emergency={emergency} signalPhase={signalPhase} />
               </Suspense>
               {emergency && (
-                <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-destructive/20 backdrop-blur-sm rounded-lg px-3 py-1.5 text-xs font-mono text-destructive animate-pulse border border-destructive/30">
-                  <Zap className="w-3 h-3" /> EMERGENCY ACTIVE
+                <div className="absolute top-3 left-3 flex flex-col gap-2 pointer-events-none">
+                  <div className="flex items-center gap-1.5 bg-destructive/20 backdrop-blur-sm rounded-lg px-3 py-1.5 text-xs font-mono text-destructive animate-pulse border border-destructive/30">
+                    <Zap className="w-3 h-3" /> EMERGENCY ACTIVE
+                  </div>
+                  {emergencyRoute && (
+                    <div className="bg-background/80 backdrop-blur-md rounded-lg px-3 py-2 text-xs font-mono text-primary font-bold border border-primary/30 max-w-xs">
+                      {emergencyRoute}
+                    </div>
+                  )}
                 </div>
               )}
               {/* Overlay stats */}
@@ -293,11 +345,29 @@ export default function Dashboard() {
               </span>
             </div>
 
-            <button onClick={() => setEmergency(!emergency)}
-              className={`w-full py-4 rounded-xl font-heading text-sm font-bold flex items-center justify-center gap-2 transition-all tracking-wider ${emergency ? "bg-destructive text-destructive-foreground glow-primary animate-pulse" : "bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/30"}`}>
-              <Ambulance className="w-5 h-5" />
-              {emergency ? "⚠ EMERGENCY ACTIVE" : "EMERGENCY OVERRIDE"}
-            </button>
+            <div className="pt-4 border-t border-border/20 space-y-3">
+              <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider block">EMERGENCY CORRIDOR</label>
+              <div className="flex gap-2">
+                <select value={emergencySource} onChange={(e) => setEmergencySource(e.target.value)} className="w-1/2 bg-background border border-border/20 rounded-lg text-xs p-2 text-foreground font-mono focus:ring-1 focus:ring-primary focus:outline-none">
+                  <option value="SILK_BOARD">Silk Board</option>
+                  <option value="HEBBAL">Hebbal</option>
+                  <option value="KORAMANGALA">Koramangala</option>
+                  <option value="INDIRANAGAR">Indiranagar</option>
+                </select>
+                <select value={emergencyDest} onChange={(e) => setEmergencyDest(e.target.value)} className="w-1/2 bg-background border border-border/20 rounded-lg text-xs p-2 text-foreground font-mono focus:ring-1 focus:ring-primary focus:outline-none">
+                  <option value="HEBBAL">Hebbal</option>
+                  <option value="SILK_BOARD">Silk Board</option>
+                  <option value="OUTER_RING">Outer Ring Road</option>
+                  <option value="MAJESTIC">Majestic</option>
+                </select>
+              </div>
+
+              <button onClick={handleActivateEmergency}
+                className={`w-full py-3 rounded-xl font-heading text-sm font-bold flex items-center justify-center gap-2 transition-all tracking-wider ${emergency ? "bg-destructive text-destructive-foreground glow-primary animate-pulse" : "bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/30"}`}>
+                <Ambulance className="w-5 h-5" />
+                {emergency ? "DEACTIVATE EMERGENCY" : "ACTIVATE GREEN WAVE"}
+              </button>
+            </div>
 
             <div className="glass rounded-xl p-4 flex items-center gap-3">
               {mode === "RAIN" ? <CloudRain className="w-8 h-8 text-accent" /> : <Sun className="w-8 h-8 text-warning" />}

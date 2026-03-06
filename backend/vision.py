@@ -1,10 +1,20 @@
-import cv2
 import math
-import numpy as np
-from ultralytics import YOLO
 import threading
 import time
 import os
+
+# Optional heavy deps — backend starts without them (YOLO is a bonus feature)
+try:
+    import cv2
+    import numpy as np
+    from ultralytics import YOLO
+    _VISION_AVAILABLE = True
+except ImportError as _e:
+    print(f"[vision] OpenCV/Ultralytics not available: {_e}. YOLO features disabled.")
+    cv2 = None  # type: ignore
+    np = None   # type: ignore
+    YOLO = None  # type: ignore
+    _VISION_AVAILABLE = False
 
 class TrafficVisionTracker:
     def __init__(self, model_path="yolov8n.pt", source=0):
@@ -16,15 +26,20 @@ class TrafficVisionTracker:
         # It will automatically download 'yolov8n.pt' if not present
         self.source = source
         self.running = False
-        
+        self.model = None
+
+        if not _VISION_AVAILABLE:
+            print("[vision] YOLO unavailable — install ultralytics + opencv-python to enable.")
+            return
+
         self.custom_model_path = "yolov8n_custom.pt"
         self.base_model_path = model_path
-        
+
         if os.path.exists(self.custom_model_path):
             self.current_model_path = self.custom_model_path
         else:
             self.current_model_path = self.base_model_path
-            
+
         self.model = YOLO(self.current_model_path)
         self.last_modified = os.path.getmtime(self.current_model_path) if os.path.exists(self.current_model_path) else 0
         
@@ -60,14 +75,18 @@ class TrafficVisionTracker:
             self.thread.join()
 
     def _tracking_loop(self):
+        if not _VISION_AVAILABLE:
+            print("[vision] _tracking_loop: YOLO disabled, skipping.")
+            self.running = False
+            return
         # Open video capture
         cap = cv2.VideoCapture(self.source)
-        
+
         if not cap.isOpened():
             print(f"Error: Could not open video source {self.source}")
             self.running = False
             return
-            
+
         print(f"Started YOLOv8 tracking on source: {self.source}")
 
         while self.running:

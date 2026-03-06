@@ -1,6 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Depends
 from pydantic import BaseModel, Field
-import pandas as pd
 import io
 import json
 from typing import List, Optional
@@ -66,6 +65,7 @@ async def ingest_csv_batch(
         raise HTTPException(status_code=400, detail="Only standard CSV files are permitted for bulk ingestion.")
         
     try:
+        import pandas as pd  # lazy import — only needed for CSV parsing
         contents = await file.read()
         df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
         

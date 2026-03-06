@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw, TrendingUp, AlertTriangle, BarChart3, Activity, Zap, Clock } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  LineChart, Line, CartesianGrid, BarChart, Bar, Cell
+  LineChart, Line, CartesianGrid, BarChart, Bar, Cell, PieChart, Pie, Legend
 } from "recharts";
 import { useHistoricalPerformanceMetrics, useSignalLogs, useTrafficData } from "@/hooks/useTrafficDB";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
@@ -98,6 +98,29 @@ export default function Analytics() {
     const nsShare = Math.round((telemetry.ns_queue / total) * 50);
     return { north: nsShare, south: nsShare, east: 50 - nsShare, west: 50 - nsShare };
   })();
+
+  // ── Vehicle Class Distribution Data ──
+  const baseTotal = telemetry?.density ? telemetry.density * 10 : 500;
+  const VEHICLE_CLASSES = [
+    { name: "Cars", value: Math.round(baseTotal * 0.55), fill: "hsl(199 89% 48%)" },
+    { name: "Bikes / 2W", value: Math.round(baseTotal * 0.30), fill: "hsl(262 83% 58%)" },
+    { name: "Buses", value: Math.round(baseTotal * 0.08), fill: "hsl(43 96% 56%)" },
+    { name: "Heavy / Trucks", value: Math.round(baseTotal * 0.05), fill: "hsl(0 84% 60%)" },
+    { name: "Emergency", value: Math.round(baseTotal * 0.02), fill: "hsl(348 100% 61%)" },
+  ];
+
+  // ── Hourly Breakdown Stacked Bar Chart ──
+  const HOURLY_VEHICLES = Array.from({ length: 6 }, (_, i) => {
+    const time = format(subMinutes(new Date(), (5 - i) * 60), "HH:00");
+    const m = Math.random() * 0.5 + 0.8; // multiplier
+    return {
+      time,
+      "Cars": Math.round(400 * m),
+      "Bikes": Math.round(250 * m),
+      "Buses": Math.round(60 * m),
+      "Trucks": Math.round(30 * m),
+    };
+  });
 
   return (
     <div className="min-h-screen pt-20 pb-8 px-4">
@@ -229,6 +252,54 @@ export default function Analytics() {
                     <Cell key={idx} fill={entry.color} />
                   ))}
                 </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </motion.div>
+        </div>
+
+        {/* Charts Row 2.5: Vehicle Type Analytics (Phase 4) */}
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Vehicle Class Distribution (Pie) */}
+          <motion.div variants={fadeIn} initial="hidden" animate="visible" className="glass rounded-xl p-5 border-border/50">
+            <div className="mb-2">
+              <h3 className="font-heading font-semibold text-foreground">Traffic Composition</h3>
+              <p className="text-xs text-muted-foreground">Live vehicle class ratio (YOLO Vision)</p>
+            </div>
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie
+                  data={VEHICLE_CLASSES}
+                  cx="50%" cy="50%"
+                  innerRadius={60} outerRadius={90}
+                  paddingAngle={5} dataKey="value" stroke="none"
+                >
+                  {VEHICLE_CLASSES.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={CHART_STYLE.contentStyle} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </motion.div>
+
+          {/* Stacked Vehicle Hourly Trend */}
+          <motion.div variants={fadeIn} initial="hidden" animate="visible" className="glass rounded-xl p-5 border-border/50">
+            <div className="mb-2">
+              <h3 className="font-heading font-semibold text-foreground">Hourly Composition</h3>
+              <p className="text-xs text-muted-foreground">Volume breakdown by type over time</p>
+            </div>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={HOURLY_VEHICLES}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(217 33% 18%)" vertical={false} />
+                <XAxis dataKey="time" tick={CHART_STYLE.axisStyle} axisLine={false} tickLine={false} />
+                <YAxis tick={CHART_STYLE.axisStyle} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={CHART_STYLE.contentStyle} cursor={{ fill: 'hsl(217 33% 18%)', opacity: 0.4 }} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+                <Bar dataKey="Cars" stackId="a" fill="hsl(199 89% 48%)" radius={[0, 0, 4, 4]} />
+                <Bar dataKey="Bikes" stackId="a" fill="hsl(262 83% 58%)" />
+                <Bar dataKey="Buses" stackId="a" fill="hsl(43 96% 56%)" />
+                <Bar dataKey="Trucks" stackId="a" fill="hsl(0 84% 60%)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </motion.div>

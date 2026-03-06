@@ -14,6 +14,8 @@ const navLinks = [
   { to: "/bangalore", label: "Bangalore" },
   { to: "/cameras", label: "Cameras" },
   { to: "/map", label: "Map" },
+  { to: "/twin", label: "3D Twin" },
+  { to: "/predict", label: "Predict" },
   { to: "/reports", label: "Reports" },
   { to: "/settings", label: "Settings" },
 ];
