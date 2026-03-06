@@ -11,6 +11,8 @@ const navLinks = [
   { to: "/dashboard", label: "Command" },
   { to: "/analytics", label: "Analytics" },
   { to: "/agents", label: "Agents" },
+  { to: "/bangalore", label: "Bangalore" },
+  { to: "/cameras", label: "Cameras" },
   { to: "/map", label: "Map" },
   { to: "/reports", label: "Reports" },
   { to: "/settings", label: "Settings" },
@@ -55,9 +57,8 @@ export default function Navbar() {
           ) : (
             navLinks.map((link) => (
               <Link key={link.to} to={link.to}
-                className={`px-3 py-2 text-xs font-heading tracking-wider rounded-lg transition-all ${
-                  location.pathname === link.to ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"
-                }`}>{link.label.toUpperCase()}</Link>
+                className={`px-3 py-2 text-xs font-heading tracking-wider rounded-lg transition-all ${location.pathname === link.to ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"
+                  }`}>{link.label.toUpperCase()}</Link>
             ))
           )}
         </div>
@@ -137,9 +138,8 @@ export default function Navbar() {
             <>
               {navLinks.map((link) => (
                 <Link key={link.to} to={link.to} onClick={() => setMobileOpen(false)}
-                  className={`block px-4 py-2 text-xs font-heading tracking-wider rounded-lg ${
-                    location.pathname === link.to ? "text-primary bg-primary/10" : "text-muted-foreground"
-                  }`}>{link.label.toUpperCase()}</Link>
+                  className={`block px-4 py-2 text-xs font-heading tracking-wider rounded-lg ${location.pathname === link.to ? "text-primary bg-primary/10" : "text-muted-foreground"
+                    }`}>{link.label.toUpperCase()}</Link>
               ))}
               <Link to="/notifications" onClick={() => setMobileOpen(false)} className="block px-4 py-2 text-xs font-heading tracking-wider text-muted-foreground">NOTIFICATIONS</Link>
               <Link to="/profile" onClick={() => setMobileOpen(false)} className="block px-4 py-2 text-xs font-heading tracking-wider text-muted-foreground">PROFILE</Link>

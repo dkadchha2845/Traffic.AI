@@ -53,6 +53,12 @@ app.include_router(reports_router)
 from ingest_api import router as ingest_router
 app.include_router(ingest_router)
 
+from bangalore_api import router as bangalore_router
+app.include_router(bangalore_router)
+
+from prediction_api import router as prediction_router
+app.include_router(prediction_router)
+
 import asyncio
 import json
 import random

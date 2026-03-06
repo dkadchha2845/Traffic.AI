@@ -26,6 +26,8 @@ import Help from "./pages/Help";
 import ResetPassword from "./pages/ResetPassword";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import BangaloreTraffic from "./pages/BangaloreTraffic";
+import CameraFeed from "./pages/CameraFeed";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +49,8 @@ function AnimatedRoutes() {
         <Route path="/notifications" element={<ProtectedRoute><PageTransition><Notifications /></PageTransition></ProtectedRoute>} />
         <Route path="/help" element={<ProtectedRoute><PageTransition><Help /></PageTransition></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><PageTransition><Admin /></PageTransition></ProtectedRoute>} />
+        <Route path="/bangalore" element={<ProtectedRoute><PageTransition><BangaloreTraffic /></PageTransition></ProtectedRoute>} />
+        <Route path="/cameras" element={<ProtectedRoute><PageTransition><CameraFeed /></PageTransition></ProtectedRoute>} />
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
       </Routes>
     </AnimatePresence>
