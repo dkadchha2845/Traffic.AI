@@ -11,32 +11,6 @@ import { format, subMinutes } from "date-fns";
 
 const fadeIn = { hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
 
-// ── Demo Safety Mode: Calibrated Bangalore traffic analytics fallback ────────
-function generateBangaloreFallback() {
-  const hour = new Date().getHours();
-  const isPeak = (hour >= 7 && hour <= 10) || (hour >= 17 && hour <= 21);
-
-  // Generate 20 data points over the last 20 minutes
-  return Array.from({ length: 20 }, (_, i) => {
-    const t = subMinutes(new Date(), 20 - i);
-    const baseAI = isPeak ? 72 + Math.random() * 15 : 84 + Math.random() * 10;
-    const baseTrad = isPeak ? 50 + Math.random() * 8 : 55 + Math.random() * 10;
-    const density = isPeak ? 65 + Math.random() * 20 : 30 + Math.random() * 20;
-    const cpu = 20 + Math.random() * 25;
-    const memory = 55 + Math.random() * 20;
-    return {
-      time: format(t, "HH:mm"),
-      ai_efficiency: parseFloat(baseAI.toFixed(1)),
-      traditional_efficiency: parseFloat(baseTrad.toFixed(1)),
-      density: parseFloat(density.toFixed(1)),
-      cpu_load: parseFloat(cpu.toFixed(1)),
-      memory_usage: parseFloat(memory.toFixed(1)),
-      latency: parseFloat((8 + Math.random() * 15).toFixed(1)),
-      throughput: Math.round(100 - density),
-    };
-  });
-}
-
 // Bangalore intersection throughput breakdown
 const BANGALORE_THROUGHPUT = [
   { name: "Silk Board", vehicles: 1240, color: "#ef4444" },
@@ -62,20 +36,20 @@ export default function Analytics() {
   const { data: trafficData } = useTrafficData();
   const { data: telemetry } = useLiveTelemetry();
 
-  // Use real DB data when available, seamlessly fall back to Bangalore calibrated data
+  // Use real DB data only. No fallbacks with fake values.
   const hasRealData = metricsData && metricsData.length >= 3;
   const chartData = hasRealData
     ? metricsData!.map((m) => ({
       time: format(new Date(m.created_at), "HH:mm"),
       ai_efficiency: m.ai_efficiency,
       traditional_efficiency: m.traditional_efficiency,
-      density: 100 - m.ai_efficiency,  // inverse relationship
+      density: 100 - m.ai_efficiency,
       cpu_load: m.cpu_load,
       memory_usage: m.memory_usage,
       latency: m.network_latency,
       throughput: m.ai_efficiency,
     }))
-    : generateBangaloreFallback();
+    : [];
 
   const latestPoint = chartData[chartData.length - 1];
   const avgAI = parseFloat((chartData.reduce((s, d) => s + d.ai_efficiency, 0) / chartData.length).toFixed(1));
@@ -110,17 +84,18 @@ export default function Analytics() {
   ];
 
   // ── Hourly Breakdown Stacked Bar Chart ──
-  const HOURLY_VEHICLES = Array.from({ length: 6 }, (_, i) => {
-    const time = format(subMinutes(new Date(), (5 - i) * 60), "HH:00");
-    const m = Math.random() * 0.5 + 0.8; // multiplier
+  const HOURLY_VEHICLES = trafficData && trafficData.length >= 2 ? [...trafficData].slice(0, 10).reverse().map(d => {
+    const time = format(new Date(d.created_at), "HH:mm");
+    const totalVehicles = Math.max(10, (d.north + d.south + d.east + d.west) * ((d.density / 20) + 1));
     return {
       time,
-      "Cars": Math.round(400 * m),
-      "Bikes": Math.round(250 * m),
-      "Buses": Math.round(60 * m),
-      "Trucks": Math.round(30 * m),
+      "Cars": Math.round(totalVehicles * 0.55),
+      "Bikes": Math.round(totalVehicles * 0.30),
+      "Buses": Math.round(totalVehicles * 0.08),
+      "Trucks": Math.round(totalVehicles * 0.07),
     };
-  });
+  }) : [];
+
 
   return (
     <div className="min-h-screen pt-20 pb-8 px-4">

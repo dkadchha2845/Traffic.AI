@@ -28,48 +28,37 @@ export default function Reports() {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
 
-  const handleDownloadReport = async (title: string) => {
+  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+  const downloadPdf = async (filename: string) => {
     try {
-      setDownloading(title);
-      const response = await fetch("http://localhost:8000/api/report/generate", { method: "GET" });
+      const response = await fetch(`${API_BASE}/api/report/generate`, { method: "GET" });
       if (!response.ok) throw new Error("Backend returned " + response.status);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${title.replace(/\s+/g, "_")}_${format(new Date(), "yyyyMMdd")}.pdf`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-      toast.success(`Downloaded: ${title}`);
+      toast.success(`Downloaded: ${filename}`);
     } catch (e: any) {
       toast.error("Backend offline — start the Python backend to generate PDFs.");
-    } finally {
-      setDownloading(null);
     }
+  };
+
+  const handleDownloadReport = async (title: string) => {
+    setDownloading(title);
+    await downloadPdf(`${title.replace(/\s+/g, "_")}_${format(new Date(), "yyyyMMdd")}.pdf`);
+    setDownloading(null);
   };
 
   const handleNewReport = async () => {
     setGenerating(true);
-    try {
-      const response = await fetch("http://localhost:8000/api/report/generate", { method: "GET" });
-      if (!response.ok) throw new Error("Backend returned " + response.status);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `TrafficAI_Report_${format(new Date(), "yyyyMMdd_HHmmss")}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-      toast.success("New report generated and downloaded!");
-    } catch {
-      toast.error("Backend offline — start the Python backend to generate PDFs.");
-    } finally {
-      setGenerating(false);
-    }
+    await downloadPdf(`TrafficAI_Report_${format(new Date(), "yyyyMMdd_HHmmss")}.pdf`);
+    setGenerating(false);
   };
 
   const errorCount = logsData?.filter((l) => l.log_type === "ERROR").length ?? 0;

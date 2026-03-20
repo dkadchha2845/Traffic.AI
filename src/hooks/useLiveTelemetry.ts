@@ -23,71 +23,37 @@ export interface TelemetryPayload {
     live_incidents: any[];
 }
 
-// ── Demo Safety Fallback: Calibrated Bangalore traffic patterns ──────────────
-function getBangaloreFallback(): TelemetryPayload {
-    const hour = new Date().getHours();
-    const isPeakMorning = hour >= 7 && hour <= 10;
-    const isPeakEvening = hour >= 17 && hour <= 21;
-    const isPeak = isPeakMorning || isPeakEvening;
+// Zero-state payload — displayed while WebSocket is connecting
+// All real values come exclusively from the backend WebSocket
+const EMPTY_TELEMETRY: TelemetryPayload = {
+    type: "telemetry",
+    cpu_load: 0,
+    memory_usage: 0,
+    network_latency: 0,
+    active_nodes: 0,
+    density: 0,
+    vehicle_count: 0,
+    signal_phase: "NS_GREEN",
+    ns_queue: 0,
+    ew_queue: 0,
+    grid_congestion: {},
+    live_incidents: [],
+};
 
-    const baseDensity = isPeak ? 68 + Math.floor(Math.random() * 15) : 35 + Math.floor(Math.random() * 20);
-    const vehicleCount = Math.round(baseDensity * 1.4 + 10);
-
-    return {
-        type: "telemetry",
-        cpu_load: 22 + Math.random() * 18,
-        memory_usage: 55 + Math.random() * 20,
-        network_latency: 8 + Math.random() * 12,
-        active_nodes: 9,
-        density: baseDensity,
-        vehicle_count: vehicleCount,
-        signal_phase: Math.random() > 0.5 ? "NS_GREEN" : "EW_GREEN",
-        ns_queue: Math.round(vehicleCount * 0.55),
-        ew_queue: Math.round(vehicleCount * 0.45),
-        grid_congestion: {
-            "BLR-1": isPeak ? 82 : 45,
-            "BLR-2": isPeak ? 70 : 38,
-            "BLR-3": isPeak ? 65 : 33,
-            "BLR-4": isPeak ? 60 : 30,
-            "BLR-5": isPeak ? 73 : 42,
-            "BLR-6": isPeak ? 55 : 28,
-            "BLR-7": isPeak ? 68 : 40,
-            "BLR-8": isPeak ? 71 : 36,
-            "BLR-9": isPeak ? 78 : 44,
-        },
-        live_incidents: [],
-    };
-}
 
 export function useLiveTelemetry() {
-    const [data, setData] = useState<TelemetryPayload>(getBangaloreFallback());
+    const [data, setData] = useState<TelemetryPayload>(EMPTY_TELEMETRY);
     const [connected, setConnected] = useState(false);
-    const [usingFallback, setUsingFallback] = useState(false);
+    // usingFallback is always false — the system no longer uses fake data
+    const usingFallback = false;
     const wsRef = useRef<WebSocket | null>(null);
-    const fallbackRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-    const startFallback = useCallback(() => {
-        setUsingFallback(true);
-        setConnected(false);
-        if (fallbackRef.current) return; // already running
-        // Update every 5 seconds with realistic Bangalore variation
-        fallbackRef.current = setInterval(() => {
-            setData(getBangaloreFallback());
-        }, 5000);
-    }, []);
 
     const stopFallback = useCallback(() => {
-        if (fallbackRef.current) {
-            clearInterval(fallbackRef.current);
-            fallbackRef.current = null;
-        }
-        setUsingFallback(false);
+        // No-op: fallback system removed for production mode
     }, []);
 
     useEffect(() => {
         let retryTimer: ReturnType<typeof setTimeout>;
-        let attempts = 0;
-        const MAX_ATTEMPTS = 3;
 
         const connect = () => {
             if (wsRef.current) wsRef.current.close();
@@ -99,7 +65,6 @@ export function useLiveTelemetry() {
                 ws.onopen = () => {
                     setConnected(true);
                     stopFallback();
-                    attempts = 0;
                 };
 
                 ws.onmessage = (evt) => {
@@ -118,15 +83,10 @@ export function useLiveTelemetry() {
                 ws.onclose = () => {
                     setConnected(false);
                     wsRef.current = null;
-                    attempts++;
-                    if (attempts >= MAX_ATTEMPTS) {
-                        startFallback();
-                    } else {
-                        retryTimer = setTimeout(connect, 3000);
-                    }
+                    retryTimer = setTimeout(connect, 8000);
                 };
             } catch {
-                startFallback();
+                retryTimer = setTimeout(connect, 8000);
             }
         };
 
@@ -135,9 +95,8 @@ export function useLiveTelemetry() {
         return () => {
             clearTimeout(retryTimer);
             if (wsRef.current) wsRef.current.close();
-            if (fallbackRef.current) clearInterval(fallbackRef.current);
         };
-    }, [startFallback, stopFallback]);
+    }, [stopFallback]);
 
     return { data, connected, usingFallback };
 }

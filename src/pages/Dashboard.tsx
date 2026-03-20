@@ -1,19 +1,17 @@
 import { Link } from "react-router-dom";
-import { useState, useEffect, useCallback, Suspense, lazy, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
   Activity, Play, Square, AlertTriangle, CheckCircle2, Cpu, HardDrive,
-  CloudRain, Sun, Zap, Ambulance, RefreshCw, BarChart3, Wind, Droplets
+  CloudRain, Sun, Zap, Ambulance, RefreshCw, BarChart3, Wind, Droplets, Loader2
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSignalLogs, useInsertSignalLog, useInsertPerformanceMetrics, useInsertTrafficData } from "@/hooks/useTrafficDB";
+import { useSignalLogs, useInsertPerformanceMetrics, useInsertTrafficData } from "@/hooks/useTrafficDB";
 import { useLiveTelemetry, useLiveWeather } from "@/hooks/useLiveTelemetry";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { fetchApi } from "@/lib/fetchApi";
-
-const TrafficScene3D = lazy(() => import("@/components/TrafficScene3D"));
+import { fetchApi } from "../lib/fetchApi";
 
 const fadeIn = { hidden: { opacity: 0, y: 20 }, visible: (i: number = 0) => ({ opacity: 1, y: 0, transition: { delay: i * 0.1, duration: 0.5, ease: "easeOut" as const } }) };
 
@@ -26,19 +24,11 @@ const agents = [
   { name: "AnalyticsAgent", status: "Active", color: "bg-success" },
 ];
 
-const logTemplates = [
-  { agent: "SensorAgent", action: "detect", msg: "High density detected at Intersection {id}.", type: "INFO" },
-  { agent: "DecisionAgent", action: "recalculate", msg: "Recalculated light timings (+{n}s green phase).", type: "SUCCESS" },
-  { agent: "LearningAgent", action: "learn", msg: "Reward function updated based on throughput (+{r}).", type: "LEARN" },
-  { agent: "SignalControlAgent", action: "signal", msg: "Signal phase transition completed for Sector {s}.", type: "INFO" },
-  { agent: "ComparisonAgent", action: "compare", msg: "AI outperforming fixed by {p}% this cycle.", type: "SUCCESS" },
-  { agent: "AnalyticsAgent", action: "analyze", msg: "Analytics snapshot saved. Efficiency at {e}%.", type: "INFO" },
-];
-
 const logTypeColors: Record<string, string> = {
   INFO: "text-foreground", SUCCESS: "text-success", LEARN: "text-accent",
   WARN: "text-warning", DEBUG: "text-muted-foreground",
 };
+
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -49,8 +39,7 @@ export default function Dashboard() {
   const [emergencySource, setEmergencySource] = useState<string>("SILK_BOARD");
   const [emergencyDest, setEmergencyDest] = useState<string>("HEBBAL");
 
-  // ── Live WebSocket data (with automatic Bangalore fallback) ──
-  const { data: telemetry, connected, usingFallback } = useLiveTelemetry();
+  const { data: telemetry, connected } = useLiveTelemetry();
   const weather = useLiveWeather();
 
   const density = telemetry.density;
@@ -62,60 +51,31 @@ export default function Dashboard() {
 
   const wsRef = useRef<WebSocket | null>(null);
   const { data: logs } = useSignalLogs();
-  const { mutate: insertLog } = useInsertSignalLog();
   const { mutate: insertMetrics } = useInsertPerformanceMetrics();
   const { mutate: insertTraffic } = useInsertTrafficData();
 
-  // Persist telemetry to DB every 5s when backend is streaming
-  useEffect(() => {
-    if (!user || !connected) return;
-    const timer = setInterval(() => {
-      try {
-        insertMetrics({
-          cpu_load: telemetry.cpu_load,
-          memory_usage: telemetry.memory_usage,
-          storage_usage: 28,
-          network_latency: telemetry.network_latency,
-          active_nodes: telemetry.active_nodes,
-          ai_efficiency: parseFloat((100 - telemetry.density).toFixed(1)),
-          traditional_efficiency: parseFloat(Math.max(0, 100 - telemetry.density - 12.5).toFixed(1)),
-        });
-        insertTraffic({
-          intersection_id: "BLR-CORE-1",
-          north: telemetry.ns_queue || 0,
-          south: telemetry.ns_queue || 0,
-          east: telemetry.ew_queue || 0,
-          west: telemetry.ew_queue || 0,
-          weather: mode === "RAIN" ? "rain" : "clear",
-          peak_hour: mode === "PEAK",
-          density: telemetry.density,
-          mode,
-          emergency_active: emergency,
-          optimal_signal_duration: telemetry.signal_phase === "NS_GREEN" ? 45.0 : 30.0,
-        });
-      } catch { }
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [user, connected, telemetry, mode, emergency, insertMetrics, insertTraffic]);
+  // Real-time junction decision state
+  const [junctionId, setJunctionId] = useState("silk-board");
+  const [junctionData, setJunctionData] = useState<any>(null);
+  const [loadingJunction, setLoadingJunction] = useState(false);
 
-  // Auto-generate contextual agent logs every 12s when sim is running
+  // Fetch real junction data from backend simulation engine
   useEffect(() => {
-    if (!simRunning || !user) return;
-    const timer = setInterval(() => {
-      const tpl = logTemplates[Math.floor(Math.random() * logTemplates.length)];
-      const msg = tpl.msg
-        .replace("{id}", `A-${Math.floor(Math.random() * 9) + 1}`)
-        .replace("{n}", String(Math.floor(Math.random() * 15) + 5))
-        .replace("{r}", (Math.random() * 1.5).toFixed(2))
-        .replace("{s}", String(Math.floor(Math.random() * 8) + 1))
-        .replace("{p}", String(Math.floor(Math.random() * 30) + 10))
-        .replace("{e}", (85 + Math.random() * 14).toFixed(1));
+    const fetchJunction = async () => {
+      setLoadingJunction(true);
       try {
-        insertLog({ agent_name: tpl.agent, action: tpl.action, message: msg, log_type: tpl.type as "INFO" | "SUCCESS" | "LEARN" });
-      } catch { }
-    }, 12000);
-    return () => clearInterval(timer);
-  }, [simRunning, user, insertLog]);
+        const data = await fetchApi(`/api/simulate/autofill?junction_id=${junctionId}`);
+        setJunctionData(data);
+      } catch {
+        setJunctionData(null);
+      } finally {
+        setLoadingJunction(false);
+      }
+    };
+    fetchJunction();
+    const t = setInterval(fetchJunction, 30_000); // refresh every 30s
+    return () => clearInterval(t);
+  }, [junctionId]);
 
   // Send commands to backend WebSocket when connected
   const sendCommand = useCallback((payload: object) => {
@@ -131,28 +91,16 @@ export default function Dashboard() {
       toast.success("Emergency override deactivated. Signals returning to normal.");
       return;
     }
-
-    // Fake the POST /api/emergency/corridor response locally for the demo if fallback is active
-    if (usingFallback) {
-      setEmergency(true);
-      setEmergencyRoute(`Priority green-wave activated: ${emergencySource} -> ${emergencyDest}`);
-      toast.success("Green-wave corridor activated!");
-      return;
-    }
-
     try {
       const resp = await fetchApi("/api/emergency/corridor", {
         method: "POST",
-        body: JSON.stringify({ origin: emergencySource, destination: emergencyDest })
+        body: JSON.stringify({ origin_junction: emergencySource.toLowerCase().replace("_", "-"), destination_junction: emergencyDest.toLowerCase().replace("_", "-"), vehicle_type: "Ambulance" })
       });
       setEmergency(true);
-      setEmergencyRoute(`Path: ${resp.route.join(" ➔ ")}`);
-      toast.success("Green-wave corridor activated!");
-    } catch (err) {
-      console.warn("API failed, using fallback");
-      setEmergency(true);
-      setEmergencyRoute(`Path: ${emergencySource} ➔ CENTER ➔ ${emergencyDest}`);
-      toast.success("Green-wave corridor activated!");
+      setEmergencyRoute(`Path: ${resp.signal_overrides.map((s: any) => s.junction_name).join(" ➞ ")}`);
+      toast.success(resp.message);
+    } catch {
+      toast.error("Backend unavailable — cannot activate green-wave. Check backend connection.");
     }
   };
 
@@ -185,9 +133,9 @@ export default function Dashboard() {
             <p className="text-muted-foreground text-sm">Real-time neural traffic monitoring and control — Bangalore CityOS</p>
             <div className="flex items-center gap-3 mt-1">
               <span className="text-xs text-muted-foreground">Operator: {user?.email ?? "–"}</span>
-              <span className={`flex items-center gap-1 text-xs font-mono ${connected ? "text-success" : usingFallback ? "text-warning" : "text-destructive"}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${connected ? "bg-success animate-pulse" : usingFallback ? "bg-warning animate-pulse" : "bg-destructive"}`} />
-                {connected ? "LIVE BACKEND" : usingFallback ? "DEMO MODE" : "CONNECTING..."}
+              <span className={`flex items-center gap-1 text-xs font-mono ${connected ? "text-success" : "text-destructive"}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${connected ? "bg-success animate-pulse" : "bg-destructive"}`} />
+                {connected ? "LIVE BACKEND" : "OFFLINE — NO DATA"}
               </span>
             </div>
           </div>
@@ -245,59 +193,95 @@ export default function Dashboard() {
             </div>
           </motion.div>
 
-          {/* Center - 3D Simulation */}
+          {/* Center - Real Traffic Decision Panel */}
           <motion.div variants={fadeIn} initial="hidden" animate="visible" className="lg:col-span-2 glass rounded-2xl p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Activity className="w-5 h-5 text-primary" />
-                <h3 className="font-heading text-xs uppercase tracking-[0.2em] text-muted-foreground">3D Traffic Simulation</h3>
+                <h3 className="font-heading text-xs uppercase tracking-[0.2em] text-muted-foreground">Traffic Decision Panel</h3>
               </div>
               <div className="flex items-center gap-2">
-                {simRunning && (
-                  <span className="flex items-center gap-1.5 text-xs font-mono text-destructive">
-                    <span className="w-2 h-2 rounded-full bg-destructive animate-pulse-glow" />LIVE
-                  </span>
+                <select
+                  value={junctionId}
+                  onChange={e => setJunctionId(e.target.value)}
+                  className="text-xs font-mono bg-secondary border border-border/30 rounded-lg px-2 py-1 text-foreground focus:outline-none"
+                >
+                  {["silk-board","marathahalli","hebbal","kr-puram","ecity","majestic","indiranagar","koramangala","whitefield"].map(j => (
+                    <option key={j} value={j}>{j.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</option>
+                  ))}
+                </select>
+                {loadingJunction && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+              </div>
+            </div>
+
+            {connected ? (
+              <div className="space-y-3">
+                {/* Live telemetry at a glance */}
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: "Vehicle Count", value: telemetry.vehicle_count, unit: "veh", color: "text-primary" },
+                    { label: "Congestion", value: `${Math.round(telemetry.density)}%`, unit: "", color: telemetry.density > 70 ? "text-destructive" : "text-success" },
+                    { label: "Avg Speed", value: Math.max(5, Math.round(55 * (1 - telemetry.density / 100))), unit: "km/h", color: "text-accent" },
+                    { label: "Signal Phase", value: telemetry.signal_phase === "NS_GREEN" ? "N/S" : "E/W", unit: "green", color: "text-success" },
+                  ].map(stat => (
+                    <div key={stat.label} className="bg-secondary/50 rounded-xl p-3 border border-border/20">
+                      <div className="text-xs text-muted-foreground font-mono tracking-wider">{stat.label}</div>
+                      <div className={`text-xl font-heading font-bold mt-1 ${stat.color}`}>
+                        {stat.value} <span className="text-xs font-normal text-muted-foreground">{stat.unit}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Junction analysis from backend */}
+                {junctionData ? (
+                  <div className="bg-secondary/30 rounded-xl p-4 border border-border/20 space-y-2">
+                    <div className="text-xs font-mono text-muted-foreground tracking-wider">BACKEND ANALYSIS · {junctionId.toUpperCase()}</div>
+                    <div className="grid grid-cols-3 gap-2 text-xs font-mono">
+                      <div><span className="text-muted-foreground">Hour:</span> <span className="text-foreground">{junctionData.hour}:00</span></div>
+                      <div><span className="text-muted-foreground">Peak:</span> <span className={junctionData.peak_hour ? "text-destructive" : "text-success"}>{junctionData.peak_hour ? "YES" : "NO"}</span></div>
+                      <div><span className="text-muted-foreground">Weather:</span> <span className="text-foreground">{junctionData.weather_condition ?? "--"}</span></div>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">Last synced from <code className="text-primary">/api/simulate/autofill</code></div>
+                  </div>
+                ) : (
+                  <div className="bg-secondary/20 rounded-xl p-4 border border-border/20 text-center">
+                    <span className="text-xs text-muted-foreground">{loadingJunction ? "Fetching junction data..." : "Junction data temporarily unavailable"}</span>
+                  </div>
+                )}
+
+                {/* Queue bars */}
+                <div className="space-y-2">
+                  {[
+                    { label: "N/S Queue", value: telemetry.ns_queue, max: Math.max(telemetry.ns_queue, telemetry.ew_queue, 1) },
+                    { label: "E/W Queue", value: telemetry.ew_queue, max: Math.max(telemetry.ns_queue, telemetry.ew_queue, 1) },
+                  ].map(q => (
+                    <div key={q.label} className="space-y-1">
+                      <div className="flex justify-between text-xs font-mono">
+                        <span className="text-muted-foreground">{q.label}</span>
+                        <span className="text-foreground">{q.value} veh</span>
+                      </div>
+                      <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                        <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (q.value / (q.max || 1)) * 100)}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {emergency && emergencyRoute && (
+                  <div className="flex items-center gap-2 bg-destructive/20 rounded-lg px-3 py-2 text-xs font-mono text-destructive border border-destructive/30 animate-pulse">
+                    <Zap className="w-3 h-3" /> EMERGENCY: {emergencyRoute}
+                  </div>
                 )}
               </div>
-            </div>
-
-            <div className="relative bg-background/50 rounded-xl aspect-video overflow-hidden border border-border/30">
-              <Suspense fallback={<div className="w-full h-full flex items-center justify-center"><div className="text-sm font-mono text-muted-foreground animate-pulse">Loading 3D Scene...</div></div>}>
-                <TrafficScene3D density={density} emergency={emergency} signalPhase={signalPhase} />
-              </Suspense>
-              {emergency && (
-                <div className="absolute top-3 left-3 flex flex-col gap-2 pointer-events-none">
-                  <div className="flex items-center gap-1.5 bg-destructive/20 backdrop-blur-sm rounded-lg px-3 py-1.5 text-xs font-mono text-destructive animate-pulse border border-destructive/30">
-                    <Zap className="w-3 h-3" /> EMERGENCY ACTIVE
-                  </div>
-                  {emergencyRoute && (
-                    <div className="bg-background/80 backdrop-blur-md rounded-lg px-3 py-2 text-xs font-mono text-primary font-bold border border-primary/30 max-w-xs">
-                      {emergencyRoute}
-                    </div>
-                  )}
-                </div>
-              )}
-              {/* Overlay stats */}
-              <div className="absolute bottom-3 right-3 bg-background/80 backdrop-blur rounded-lg px-3 py-2 text-xs font-mono space-y-1 border border-border/30">
-                <div className="text-muted-foreground">Density: <span className="text-primary font-bold">{congestionPct}%</span></div>
-                <div className="text-muted-foreground">Vehicles: <span className="text-success font-bold">{vehicleCount}</span></div>
-                <div className="text-muted-foreground">Speed: <span className="text-accent font-bold">{avgSpeed} km/h</span></div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-48 gap-3">
+                <AlertTriangle className="w-8 h-8 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground text-center">No live data — backend WebSocket unavailable.<br/>Start the backend: <code className="text-primary">py main.py</code></p>
               </div>
-            </div>
-
-            <div className="flex gap-3">
-              <Button onClick={() => setSimRunning(!simRunning)} size="sm"
-                className={`font-heading tracking-wider text-xs ${simRunning ? "bg-destructive/20 text-destructive hover:bg-destructive/30 border border-destructive/30" : "bg-success/20 text-success hover:bg-success/30 border border-success/30"}`}>
-                {simRunning ? <><Square className="w-3 h-3 mr-1.5" />STOP</> : <><Play className="w-3 h-3 mr-1.5" />START</>}
-              </Button>
-              <Button size="sm" variant="outline" className="border-border/50 text-foreground font-heading tracking-wider text-xs">
-                <RefreshCw className="w-3 h-3 mr-1.5" />RESET
-              </Button>
-              <Button asChild size="sm" variant="outline" className="border-primary/30 text-primary font-heading tracking-wider text-xs ml-auto">
-                <Link to="/bangalore">🇮🇳 Hotspots</Link>
-              </Button>
-            </div>
+            )}
           </motion.div>
+
+
 
           {/* Right - Control Panel */}
           <motion.div variants={fadeIn} initial="hidden" animate="visible" className="glass rounded-2xl p-5 space-y-5">

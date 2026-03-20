@@ -39,6 +39,8 @@ const trafficDataSchema = z.object({
 
 // --- Hooks ---
 
+import { fetchApi } from "@/lib/fetchApi";
+
 export function useSignalLogs() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -47,15 +49,16 @@ export function useSignalLogs() {
     queryKey: ["signal_logs"],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase
-          .from("signal_logs")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .limit(20);
-        if (error) throw error;
-        return data || [];
+        const res = await fetchApi("/api/audit/logs?limit=50");
+        return res.logs || [];
       } catch (e) {
-        return [];
+        // Fallback for demo if backend is entirely shut down and fetchApi max retries fail
+        return [
+          {
+            id: "fallback-1", created_at: new Date().toISOString(),
+            log_type: "INFO", agent_name: "Audit Fallback", message: "System offline. Showing generic fallback logs."
+          }
+        ];
       }
     },
     enabled: !!user,

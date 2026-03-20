@@ -17,9 +17,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
-def read_root():
-    return {"status": "ok", "message": "TrafficAI Backend API is running."}
+from health_api import router as health_router
+app.include_router(health_router)
 
 @app.get("/api/me")
 def get_my_profile(user_id: str = Depends(get_current_user_id)):
@@ -58,6 +57,12 @@ app.include_router(bangalore_router)
 
 from prediction_api import router as prediction_router
 app.include_router(prediction_router)
+
+from audit_api import router as audit_router
+app.include_router(audit_router)
+
+from simulation_api import router as simulation_router
+app.include_router(simulation_router)
 
 import asyncio
 import json

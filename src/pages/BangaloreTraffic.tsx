@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { MapPin, AlertTriangle, Zap, TrendingUp, RefreshCw, Car, Gauge } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { fetchApi } from "@/lib/fetchApi";
+
 
 const fadeIn = { hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
 
@@ -39,14 +41,12 @@ export default function BangaloreTraffic() {
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch("http://localhost:8000/api/bangalore/traffic");
-            if (!res.ok) throw new Error(`Server error ${res.status}`);
-            const json = await res.json();
+            const json = await fetchApi("/api/bangalore/traffic");
             setZones(json.zones ?? []);
             setLastUpdated(new Date().toLocaleTimeString());
             if (json.zones?.length > 0 && !selected) setSelected(json.zones[0]);
         } catch (e: any) {
-            setError("Backend offline — showing last known Bangalore traffic averages.");
+            setError("Backend offline (Trial mode inactive) — showing last known Bangalore traffic averages.");
             // Provide realistic fallback data so the UI is never blank
             const fallback: TrafficZone[] = [
                 { id: "silk-board", name: "Silk Board Junction", area: "BTM Layout / Electronic City corridor", peak_hours: "7–10 AM, 5–9 PM", lat: 12.9176, lon: 77.6238, congestion_pct: 88, vehicle_estimate: 107, level: "Critical", current_speed_kmph: 8, free_flow_speed_kmph: 50, recommendations: ["Activate emergency signal override", "Extend N-S green phases by 45s", "Dispatch traffic police"], data_source: "Calibrated Bangalore Average" },

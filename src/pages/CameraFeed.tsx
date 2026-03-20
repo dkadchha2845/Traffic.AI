@@ -233,7 +233,7 @@ export default function CameraFeed() {
                                 const y = 35 + (i % 4) * 12;
                                 const colors = ["#22c55e", "#f59e0b", "#8b5cf6", "#06b6d4", "#ef4444"];
                                 const labels = ["Car", "Motorcycle", "Truck", "Bus", "Auto Rickshaw"];
-                                const confidence = (85 + Math.random() * 14).toFixed(0);
+                                const confidence = 90 - (i % 5) * 2; // stable display; real confidence from backend YOLO
                                 return (
                                     <div key={i} className="absolute border-2 rounded flex flex-col"
                                         style={{ left: `${x}%`, top: `${y}%`, width: "80px", height: "50px", borderColor: colors[i % colors.length] }}>

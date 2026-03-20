@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Activity, Clock, TrendingUp, AlertTriangle, ShieldAlert } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
-import { fetchApi } from "@/lib/fetchApi";
+import { fetchApi } from "../lib/fetchApi";
 
 // Helper to add minutes to time string "HH:MM"
 function addMinutesAndFormat(date: Date, minutes: number) {
@@ -12,68 +12,36 @@ function addMinutesAndFormat(date: Date, minutes: number) {
 }
 
 export default function TrafficPrediction() {
-    const { data: telemetry, usingFallback } = useLiveTelemetry();
+    const { data: telemetry } = useLiveTelemetry();
     const [predictionData, setPredictionData] = useState<any[]>([]);
+    const [hotspots, setHotspots] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Auto-generate forecasting data on mount or when telemetry base density changes
     useEffect(() => {
         const fetchPredictions = async () => {
             setLoading(true);
             try {
-                // If demo mode active (API is offline), generate realistic fallback forecast
-                if (usingFallback) {
-                    const baseDensity = telemetry?.density || 50;
-                    const now = new Date();
-                    const forecast = [];
-                    // Generate 6 points (every 5 mins for 30 mins)
-                    for (let i = 0; i <= 30; i += 5) {
-                        // Create a slight upward curve for peak simulation
-                        const expectedChange = (i / 30) * 15; // grows up to 15% in 30 mins
-                        const noise = (Math.random() - 0.5) * 5;
-                        forecast.push({
-                            time: addMinutesAndFormat(now, i),
-                            density: Math.max(0, Math.min(100, baseDensity + expectedChange + noise)),
-                            predicted: i > 0 // mark standard vs predicted
-                        });
-                    }
-                    setPredictionData(forecast);
-                    setLoading(false);
-                    return;
-                }
-
-                // Call actual backend Engine
-                const resp = await fetchApi("/api/predict", { method: "POST" });
-                // map backend response to recharts
+                const resp = await fetchApi(`/api/predict?current_congestion=${telemetry?.density || 60}&horizon_minutes=30`);
                 const forecast = [
-                    { time: "Now", density: telemetry?.density || resp.current_congestion, predicted: false },
-                    { time: "+10m", density: resp.predictions["+10m"].congestion_pct, predicted: true },
-                    { time: "+20m", density: resp.predictions["+20m"].congestion_pct, predicted: true },
-                    { time: "+30m", density: resp.predictions["+30m"].congestion_pct, predicted: true }
+                    { time: "Now", density: resp.current_congestion_pct, predicted: false },
+                    ...resp["5min_intervals"].map((f: any) => ({
+                        time: f.time,
+                        density: f.congestion_pct,
+                        predicted: true
+                    }))
                 ];
                 setPredictionData(forecast);
+                setHotspots(resp.junction_forecasts || []);
                 setLoading(false);
-            } catch (err) {
-                console.warn("Prediction API offline. Falling back to empirical logic.");
-                // Same fallback logic
-                const baseDensity = telemetry?.density || 60;
-                const now = new Date();
-                const forecast = [];
-                for (let i = 0; i <= 30; i += 10) {
-                    forecast.push({
-                        time: addMinutesAndFormat(now, i),
-                        density: Math.max(0, Math.min(100, baseDensity + (i / 2))),
-                        predicted: i > 0
-                    });
-                }
-                setPredictionData(forecast);
+            } catch {
+                // API unavailable — show empty state, never fake data
+                setPredictionData([]);
                 setLoading(false);
             }
         };
-
-        const timer = setTimeout(fetchPredictions, 1000);
-        return () => clearTimeout(timer);
-    }, [telemetry?.density, usingFallback]);
+        const t = setTimeout(fetchPredictions, 800);
+        return () => clearTimeout(t);
+    }, [telemetry?.density]);
 
     const isPeakSoon = predictionData.length > 0 && predictionData[predictionData.length - 1].density > 80;
 
@@ -143,14 +111,9 @@ export default function TrafficPrediction() {
                     <div className="space-y-4">
                         <h3 className="font-heading text-xs uppercase tracking-[0.2em] text-muted-foreground ml-2">Hotspot Forecasting</h3>
 
-                        {[
-                            { name: "Silk Board", base: 85, vol: "+15%" },
-                            { name: "Marathahalli", base: 72, vol: "+8%" },
-                            { name: "Hebbal Flyover", base: 64, vol: "-5%" },
-                            { name: "Electronic City", base: 45, vol: "-12%" },
-                        ].map((node, i) => {
-                            const current = telemetry?.density ? node.base * (telemetry.density / 50) : node.base;
-                            const isRising = node.vol.startsWith("+");
+                        {hotspots.length > 0 ? hotspots.slice(0, 4).map((node, i) => {
+                            const isRising = node.predicted_congestion_pct > 65;
+                            const volText = isRising ? "+ High Vol" : "- Stable";
 
                             return (
                                 <motion.div
@@ -158,27 +121,29 @@ export default function TrafficPrediction() {
                                     key={node.name} className="glass rounded-xl p-4 border border-border/20"
                                 >
                                     <div className="flex justify-between items-start mb-2">
-                                        <div className="font-heading font-semibold text-foreground">{node.name}</div>
-                                        <div className={`text-xs font-mono px-2 py-0.5 rounded-full ${isRising ? "bg-destructive/20 text-destructive border border-destructive/30" : "bg-success/20 text-success border border-success/30"}`}>
-                                            {node.vol}
+                                        <div className="font-heading font-semibold text-foreground truncate max-w-[150px]" title={node.name}>{node.name}</div>
+                                        <div className={`text-xs whitespace-nowrap font-mono px-2 py-0.5 rounded-full ${isRising ? "bg-destructive/20 text-destructive border border-destructive/30" : "bg-success/20 text-success border border-success/30"}`}>
+                                            {volText}
                                         </div>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4 mt-4">
                                         <div>
-                                            <div className="text-xs text-muted-foreground font-mono mb-1">CURRENT</div>
-                                            <div className="text-lg font-mono">{Math.min(100, current).toFixed(0)}%</div>
+                                            <div className="text-[10px] text-muted-foreground font-mono mb-1">STATUS</div>
+                                            <div className="text-sm font-bold font-mono text-foreground/80">{node.level.toUpperCase()}</div>
                                         </div>
                                         <div>
-                                            <div className="text-xs text-muted-foreground font-mono mb-1">+30 MINS</div>
+                                            <div className="text-[10px] text-muted-foreground font-mono mb-1">+30 MINS</div>
                                             <div className={`text-lg font-mono font-bold ${isRising ? "text-destructive" : "text-success"}`}>
-                                                {Math.min(100, isRising ? current * 1.2 : current * 0.8).toFixed(0)}%
+                                                {node.predicted_congestion_pct.toFixed(0)}%
                                             </div>
                                         </div>
                                     </div>
                                 </motion.div>
                             )
-                        })}
+                        }) : (
+                            <div className="text-sm text-muted-foreground italic px-2">Backend nodes offline. Showing primary region limit.</div>
+                        )}
                     </div>
                 </div>
             </div>
