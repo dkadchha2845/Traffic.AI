@@ -3,18 +3,13 @@ import { FileText, Download, Calendar, TrendingUp, Clock, Filter, Loader2, Plus,
 import { Button } from "@/components/ui/button";
 import { useTrafficData, useSignalLogs } from "@/hooks/useTrafficDB";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { API_BASE_URL } from "@/lib/runtimeConfig";
+import { fetchApi } from "@/lib/fetchApi";
 
 const fadeIn = { hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
 
-const STATIC_REPORTS = [
-  { title: "Daily Traffic Summary", date: "2026-02-28", status: "Complete", type: "Auto-generated", severity: "Normal" },
-  { title: "Peak Hour Analysis", date: "2026-02-27", status: "Complete", type: "Scheduled", severity: "High" },
-  { title: "Emergency Response Report", date: "2026-02-26", status: "Complete", type: "Triggered", severity: "Critical" },
-  { title: "Weekly AI Performance", date: "2026-02-25", status: "Processing", type: "Scheduled", severity: "Normal" },
-  { title: "Intersection A-3 Incident", date: "2026-02-24", status: "Complete", type: "Manual", severity: "High" },
-];
 
 const severityColors: Record<string, string> = {
   Normal: "text-success bg-success/10 border-success/20",
@@ -27,12 +22,25 @@ export default function Reports() {
   const { data: logsData } = useSignalLogs();
   const [downloading, setDownloading] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [selectedReportType, setSelectedReportType] = useState("full");
+  const [reportTypes, setReportTypes] = useState<{id: string; name: string; description: string}[]>([
+    {id: "full", name: "Full Operations Report", description: "Complete system overview with AI analytics, traffic data, and agent decisions"},
+    {id: "performance", name: "Performance Report", description: "CPU, memory, latency, and AI efficiency metrics"},
+    {id: "incident", name: "Incident Report", description: "Error logs, alerts, and anomaly events"},
+    {id: "forecast", name: "Forecast Report", description: "Traffic congestion predictions and trend analysis"},
+  ]);
 
-  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  useEffect(() => {
+    fetchApi("/api/report/types").then((res) => {
+      if (res?.report_types) setReportTypes(res.report_types);
+    }).catch(() => {});
+  }, []);
+
+  const API_BASE = API_BASE_URL;
 
   const downloadPdf = async (filename: string) => {
     try {
-      const response = await fetch(`${API_BASE}/api/report/generate`, { method: "GET" });
+      const response = await fetch(`${API_BASE}/api/report/generate?report_type=${selectedReportType}`, { method: "GET" });
       if (!response.ok) throw new Error("Backend returned " + response.status);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -61,14 +69,45 @@ export default function Reports() {
     setGenerating(false);
   };
 
-  const errorCount = logsData?.filter((l) => l.log_type === "ERROR").length ?? 0;
+  const last24hCutoff = Date.now() - 24 * 60 * 60 * 1000;
+  const errorCount = logsData?.filter((l) => l.log_type === "ERROR" && new Date(l.created_at).getTime() >= last24hCutoff).length ?? 0;
   const totalDataPoints = (trafficData?.length ?? 0) + (logsData?.length ?? 0);
-  const thisWeekReports = STATIC_REPORTS.filter((r) => {
-    const d = new Date(r.date);
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    return d >= weekAgo;
-  }).length;
+
+  // Build dynamic report list from real DB data
+  const dynamicReports = (() => {
+    const reports: { title: string; date: string; status: string; type: string; severity: string }[] = [];
+    if (trafficData && trafficData.length > 0) {
+      const latest = trafficData[0];
+      const density = latest.density ?? 0;
+      reports.push({
+        title: `Traffic Snapshot — ${latest.intersection_id}`,
+        date: format(new Date(latest.created_at), "yyyy-MM-dd HH:mm"),
+        status: "Complete",
+        type: "Auto-generated",
+        severity: density > 70 ? "Critical" : density > 40 ? "High" : "Normal",
+      });
+    }
+    if (logsData && logsData.length > 0) {
+      const alerts = logsData.filter((l) => l.log_type === "ALERT" || l.log_type === "ERROR");
+      if (alerts.length > 0) {
+        reports.push({
+          title: `Incident Report — ${alerts[0].agent_name}`,
+          date: format(new Date(alerts[0].created_at), "yyyy-MM-dd HH:mm"),
+          status: "Complete",
+          type: "Triggered",
+          severity: alerts[0].log_type === "ERROR" ? "Critical" : "High",
+        });
+      }
+      reports.push({
+        title: `Agent Audit Log — ${logsData.length} entries`,
+        date: format(new Date(logsData[0].created_at), "yyyy-MM-dd HH:mm"),
+        status: "Complete",
+        type: "Scheduled",
+        severity: "Normal",
+      });
+    }
+    return reports;
+  })();
 
   return (
     <div className="min-h-screen pt-20 pb-8 px-4 relative">
@@ -79,14 +118,23 @@ export default function Reports() {
             <h1 className="text-3xl font-heading font-bold tracking-wide">MISSION REPORTS</h1>
             <p className="text-muted-foreground text-sm">Historical traffic analysis and system reports — queried live from Supabase</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 items-center flex-wrap">
+            <select
+              value={selectedReportType}
+              onChange={(e) => setSelectedReportType(e.target.value)}
+              className="bg-secondary/80 border border-border/50 rounded-lg px-3 py-1.5 text-xs font-mono text-foreground focus:ring-2 focus:ring-primary/40 outline-none"
+            >
+              {reportTypes.map((rt) => (
+                <option key={rt.id} value={rt.id}>{rt.name}</option>
+              ))}
+            </select>
             <Button variant="outline" size="sm" className="border-border/50 font-heading tracking-wider text-xs gap-1.5">
               <Filter className="w-3 h-3" /> FILTER
             </Button>
             <Button size="sm" onClick={handleNewReport} disabled={generating}
               className="bg-primary text-primary-foreground hover:bg-primary/90 glow-primary font-heading tracking-wider text-xs gap-1.5">
               {generating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
-              {generating ? "GENERATING..." : "NEW REPORT"}
+              {generating ? "GENERATING..." : "GENERATE REPORT"}
             </Button>
           </div>
         </motion.div>
@@ -94,10 +142,10 @@ export default function Reports() {
         {/* Stats — all from real DB */}
         <motion.div variants={fadeIn} initial="hidden" animate="visible" className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: "Total Reports", value: STATIC_REPORTS.length.toString(), icon: FileText },
+            { label: "Reports Generated", value: dynamicReports.length.toString(), icon: FileText },
             { label: "Live Data Points", value: totalDataPoints > 0 ? totalDataPoints.toLocaleString() : "0", icon: TrendingUp },
             { label: "Error Events (24h)", value: errorCount.toString(), icon: Calendar },
-            { label: "Avg. Response", value: "2.4s", icon: Clock },
+            { label: "Status", value: totalDataPoints > 0 ? "Live" : "Offline", icon: Clock },
           ].map((s) => (
             <div key={s.label} className="glass rounded-2xl p-5 card-hover">
               <s.icon className="w-5 h-5 text-primary mb-3" />
@@ -123,7 +171,7 @@ export default function Reports() {
                 </tr>
               </thead>
               <tbody>
-                {STATIC_REPORTS.map((r, i) => (
+                {dynamicReports.map((r, i) => (
                   <tr key={i} className="border-b border-border/20 hover:bg-secondary/30 transition-colors">
                     <td className="py-4 pr-4 font-medium text-foreground">{r.title}</td>
                     <td className="py-4 pr-4 font-mono text-muted-foreground text-xs">{r.date}</td>
@@ -143,6 +191,13 @@ export default function Reports() {
                     </td>
                   </tr>
                 ))}
+                {dynamicReports.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                      Waiting for live reportable data from the backend.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -182,10 +237,10 @@ export default function Reports() {
               {logsData.slice(0, 10).map((log) => (
                 <div key={log.id} className="flex gap-3 text-xs font-mono bg-secondary/20 rounded px-3 py-1.5">
                   <span className="text-muted-foreground shrink-0">{format(new Date(log.created_at), "HH:mm:ss")}</span>
-                  <span className={`font-bold shrink-0 ${log.log_type === "ERROR" ? "text-destructive" : log.log_type === "SUCCESS" ? "text-success" : "text-primary"}`}>
+                  <span className={`font-bold shrink-0 ${log.impact === "ERROR" ? "text-destructive" : log.impact === "SUCCESS" ? "text-success" : "text-primary"}`}>
                     [{log.agent_name}]
                   </span>
-                  <span className="text-foreground/80 truncate">{log.message}</span>
+                  <span className="text-foreground/80 truncate">{log.reasoning || "No reasoning logged."}</span>
                 </div>
               ))}
             </div>

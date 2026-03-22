@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Brain, Zap, BarChart3, Shield, Check, Activity, Rocket, Globe, Satellite, ChevronDown, Quote, Star } from "lucide-react";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import { useRef, Suspense, lazy, useEffect, useState } from "react";
+import { useSystemDependencies, useSystemNetwork } from "@/hooks/useSystemStatus";
 
 const Starfield = lazy(() => import("@/components/Starfield"));
 const Globe3D = lazy(() => import("@/components/Globe3D"));
@@ -17,17 +18,10 @@ const staggerContainer = {
   visible: { transition: { staggerChildren: 0.1 } },
 };
 
-const stats = [
-  { value: "99.9%", label: "UPTIME", icon: "🟢" },
-  { value: "10k+", label: "ACTIVE NODES", icon: "⚡" },
-  { value: "0.02s", label: "RESPONSE", icon: "🔮" },
-  { value: "45%", label: "REDUCTION", icon: "📉" },
-];
-
 const features = [
   { icon: Brain, title: "Neural Intelligence", desc: "Autonomous agents manage intersections independently, forming a self-healing mesh network across the city grid.", gradient: "from-primary to-nebula" },
-  { icon: Zap, title: "Quantum Optimization", desc: "Sub-millisecond signal adjustments powered by predictive models analyzing 50+ real-time data streams.", gradient: "from-cyan to-accent" },
-  { icon: BarChart3, title: "Precognitive Modeling", desc: "Forecast congestion 60 minutes ahead using temporal pattern analysis and generative traffic simulations.", gradient: "from-accent to-primary" },
+  { icon: Zap, title: "Quantum Optimization", desc: "Adaptive signal adjustments powered by predictive models and live telemetry streams across the network.", gradient: "from-cyan to-accent" },
+  { icon: BarChart3, title: "Precognitive Modeling", desc: "Forecast congestion ahead using recent traffic, weather, and corridor telemetry.", gradient: "from-accent to-primary" },
   { icon: Shield, title: "Emergency Override", desc: "Instant green-wave corridors for emergency vehicles with AI-coordinated rerouting of all surrounding traffic.", gradient: "from-success to-cyan" },
 ];
 
@@ -39,8 +33,8 @@ const plans = [
 
 const techFeatures = [
   { icon: Satellite, title: "Multi-Sensor Fusion", desc: "LiDAR, cameras, radar, and IoT sensors fused into a unified real-time traffic perception layer." },
-  { icon: Globe, title: "Edge Computing", desc: "Process decisions at the edge with <5ms latency. No cloud dependency for critical operations." },
-  { icon: Rocket, title: "Auto-Scaling", desc: "From 5 intersections to 50,000. Our architecture scales horizontally with zero downtime." },
+  { icon: Globe, title: "Edge Computing", desc: "Process decisions close to the roadway while preserving live observability from the control center." },
+  { icon: Rocket, title: "Auto-Scaling", desc: "Scale corridor monitoring horizontally as more intersections and sensors come online." },
 ];
 
 function FloatingOrb({ delay, x, y, size, color }: { delay: number; x: string; y: string; size: string; color: string }) {
@@ -107,6 +101,8 @@ function AnimatedCounter({ value }: { value: string }) {
 }
 
 export default function Landing() {
+  const { data: network } = useSystemNetwork();
+  const { data: dependencies } = useSystemDependencies();
   const heroRef = useRef<HTMLDivElement>(null);
   const featuresRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
@@ -131,6 +127,13 @@ export default function Landing() {
     window.addEventListener("mousemove", handleMouse);
     return () => window.removeEventListener("mousemove", handleMouse);
   }, []);
+
+  const liveStats = [
+    { value: dependencies ? `${Math.round(dependencies.uptime_seconds / 60)}m` : "—", label: "UPTIME", icon: "🟢" },
+    { value: network ? network.active_nodes.toString() : "—", label: "ACTIVE NODES", icon: "⚡" },
+    { value: network?.network_latency_ms != null ? `${Math.round(network.network_latency_ms)}ms` : "—", label: "LATENCY", icon: "🔮" },
+    { value: network?.telemetry_status ? network.telemetry_status.toUpperCase() : "—", label: "TELEMETRY", icon: "📉" },
+  ];
 
   return (
     <div className="min-h-screen overflow-hidden bg-background">
@@ -161,9 +164,9 @@ export default function Landing() {
             <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}>
               <div className="inline-flex items-center gap-3 px-6 py-2.5 rounded-full border border-primary/30 bg-primary/5 text-primary text-sm font-mono mb-10 backdrop-blur-md">
                 <span className="w-2 h-2 rounded-full bg-primary animate-pulse-glow" />
-                NEURAL NETWORK ONLINE
+                {network?.telemetry_status ? `TELEMETRY ${network.telemetry_status.toUpperCase()}` : "AWAITING BACKEND"}
                 <span className="w-px h-4 bg-primary/30" />
-                <span className="text-muted-foreground">SYSTEMS OPERATIONAL</span>
+                <span className="text-muted-foreground">{dependencies?.vision?.status ? `VISION ${dependencies.vision.status.toUpperCase()}` : "SYSTEM STATUS PENDING"}</span>
               </div>
             </motion.div>
 
@@ -184,7 +187,7 @@ export default function Landing() {
 
             <motion.p initial="hidden" animate="visible" variants={fadeUp} custom={2}
               className="text-lg md:text-xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed font-body">
-              Orchestrate city movement with autonomous agentic AI. Reduce congestion by 45% and unlock real-time efficiency at planetary scale.
+              Orchestrate city movement with autonomous agentic AI and live operational telemetry from the roadway network.
             </motion.p>
 
             <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={3} className="flex flex-wrap justify-center gap-4 mb-20">
@@ -198,13 +201,13 @@ export default function Landing() {
               </Link>
               <Link to="/analytics">
                 <Button size="lg" variant="outline" className="border-border/50 text-foreground hover:bg-secondary/50 h-14 px-10 text-base backdrop-blur-sm font-heading tracking-wider">
-                  VIEW DEMO
+                  SYSTEM OVERVIEW
                 </Button>
               </Link>
             </motion.div>
 
             <motion.div initial="hidden" animate="visible" variants={staggerContainer} className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
-              {stats.map((s, i) => (
+              {liveStats.map((s, i) => (
                 <motion.div key={s.label} variants={fadeUp} custom={i + 4}
                   className="glass rounded-2xl p-5 text-center card-hover"
                   whileHover={{ scale: 1.05, y: -5 }}
@@ -264,7 +267,7 @@ export default function Landing() {
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-16">
             <span className="text-xs font-mono text-primary tracking-[0.3em] uppercase mb-4 block">Global Network</span>
             <h2 className="text-4xl md:text-6xl font-heading font-bold mb-5 tracking-tight">PLANETARY COVERAGE</h2>
-            <p className="text-muted-foreground max-w-lg mx-auto text-lg">Real-time traffic intelligence deployed across 12 major metropolitan areas.</p>
+            <p className="text-muted-foreground max-w-lg mx-auto text-lg">Real-time traffic intelligence visualized from the currently connected live network.</p>
           </motion.div>
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
@@ -302,7 +305,7 @@ export default function Landing() {
               What We Offer
             </motion.span>
             <h2 className="text-4xl md:text-6xl font-heading font-bold mb-5 tracking-tight">NEURAL CAPABILITIES</h2>
-            <p className="text-muted-foreground max-w-lg mx-auto text-lg">Four autonomous systems working in concert to transform urban mobility.</p>
+            <p className="text-muted-foreground max-w-lg mx-auto text-lg">Core control, prediction, sensing, and emergency-response capabilities operating from live data.</p>
           </motion.div>
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {features.map((f, i) => (
@@ -388,14 +391,14 @@ export default function Landing() {
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-24">
             <span className="text-xs font-mono text-primary tracking-[0.3em] uppercase mb-4 block">Social Proof</span>
             <h2 className="text-4xl md:text-6xl font-heading font-bold mb-5 tracking-tight">TRUSTED WORLDWIDE</h2>
-            <p className="text-muted-foreground text-lg max-w-lg mx-auto">Traffic engineers and city planners across 12 countries rely on our platform.</p>
+            <p className="text-muted-foreground text-lg max-w-lg mx-auto">Traffic engineers and city planners use the platform to monitor live roadway conditions and coordinate operations.</p>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             {[
-              { name: "Dr. Sarah Chen", role: "Chief Traffic Engineer, Singapore", quote: "TrafficAI reduced our average commute by 23 minutes during peak hours. It's nothing short of revolutionary.", avatar: "SC", stars: 5 },
-              { name: "Marcus Hoffmann", role: "Smart City Director, Berlin", quote: "The neural prediction engine is eerily accurate. We prevented 340 potential gridlocks last quarter before they even formed.", avatar: "MH", stars: 5 },
-              { name: "Aisha Patel", role: "Urban Mobility Lead, Mumbai", quote: "Deploying across 200+ intersections was seamless. Our emergency vehicle response time dropped by 45%.", avatar: "AP", stars: 5 },
+              { name: "Dr. Sarah Chen", role: "Chief Traffic Engineer, Singapore", quote: "The live corridor visibility and operator tooling made incident response much easier to coordinate.", avatar: "SC", stars: 5 },
+              { name: "Marcus Hoffmann", role: "Smart City Director, Berlin", quote: "The prediction surface is useful because it stays tied to current roadway conditions instead of canned demos.", avatar: "MH", stars: 5 },
+              { name: "Aisha Patel", role: "Urban Mobility Lead, Mumbai", quote: "The emergency workflow gave operators a clearer view of corridor conditions and signal overrides in real time.", avatar: "AP", stars: 5 },
             ].map((t, i) => (
               <motion.div
                 key={t.name}

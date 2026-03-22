@@ -10,6 +10,19 @@ import os
 
 router = APIRouter()
 
+REPORT_TYPES = [
+    {"id": "full", "name": "Full Operations Report", "description": "Complete system overview with AI analytics, traffic data, and agent decisions"},
+    {"id": "performance", "name": "Performance Report", "description": "CPU, memory, latency, and AI efficiency metrics"},
+    {"id": "incident", "name": "Incident Report", "description": "Error logs, alerts, and anomaly events"},
+    {"id": "forecast", "name": "Forecast Report", "description": "Traffic congestion predictions and trend analysis"},
+]
+
+
+@router.get("/api/report/types")
+def list_report_types():
+    """Returns available report types for the frontend selector."""
+    return {"report_types": REPORT_TYPES, "count": len(REPORT_TYPES)}
+
 SUPABASE_URL = os.getenv("VITE_SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", os.getenv("VITE_SUPABASE_ANON_KEY", ""))
 
@@ -43,6 +56,17 @@ def _draw_header(c, width, height):
     c.drawRightString(width - 50, height - 65, "Confidential — Restricted Access")
 
 
+def _draw_report_type_badge(c, width, height, report_type: str):
+    """Draw report type badge below header."""
+    label_map = {rt["id"]: rt["name"] for rt in REPORT_TYPES}
+    label = label_map.get(report_type, "Full Operations Report")
+    c.setFillColorRGB(0.95, 0.95, 1.0)
+    c.roundRect(50, height - 112, 495, 20, 4, fill=1, stroke=0)
+    c.setFont("Helvetica-Bold", 9)
+    c.setFillColorRGB(0.39, 0.51, 0.93)
+    c.drawString(60, height - 107, f"Report Type: {label}")
+
+
 def _draw_section_title(c, y, title):
     c.setFont("Helvetica-Bold", 12)
     c.setFillColorRGB(0.39, 0.51, 0.93)
@@ -52,12 +76,13 @@ def _draw_section_title(c, y, title):
 
 
 @router.get("/api/report/generate")
-def generate_pdf_report():
+def generate_pdf_report(report_type: str = "full"):
     buffer = io.BytesIO()
     width, height = A4  # 595 x 842
 
     c = canvas.Canvas(buffer, pagesize=A4)
     _draw_header(c, width, height)
+    _draw_report_type_badge(c, width, height, report_type)
 
     # ── Fetch live data from Supabase OR use calibrated Bangalore fallback ──────
     ai_efficiency = 84.5
@@ -75,7 +100,12 @@ def generate_pdf_report():
     sb = _get_supabase()
     if sb:
         try:
-            perf = sb.table("performance_metrics").select("*").order("created_at", desc=True).limit(20).execute()
+            try:
+                perf = sb.table("system_metrics").select("*").order("created_at", desc=True).limit(20).execute()
+            except Exception:
+                perf = sb.table("performance_metrics").select("*").order("created_at", desc=True).limit(20).execute()
+            if not perf.data:
+                perf = sb.table("performance_metrics").select("*").order("created_at", desc=True).limit(20).execute()
             if perf.data:
                 ai_vals = [r.get("ai_efficiency", 0) for r in perf.data]
                 trad_vals = [r.get("traditional_efficiency", 0) for r in perf.data]
@@ -94,7 +124,12 @@ def generate_pdf_report():
                 error_logs = sum(1 for r in logs.data if r.get("log_type") in ("ERROR", "ALERT"))
                 recent_logs = logs.data[:5]
 
-            td = sb.table("traffic_data").select("*").order("created_at", desc=True).limit(50).execute()
+            try:
+                td = sb.table("intersection_snapshots").select("*").order("created_at", desc=True).limit(50).execute()
+            except Exception:
+                td = sb.table("traffic_data").select("*").order("created_at", desc=True).limit(50).execute()
+            if not td.data:
+                td = sb.table("traffic_data").select("*").order("created_at", desc=True).limit(50).execute()
             if td.data:
                 total_traffic_reads = len(td.data)
                 densities = [r.get("density", 0) for r in td.data]
@@ -103,7 +138,7 @@ def generate_pdf_report():
             print("Report DB Query Error:", e)
 
     # ── Page body ──────────────────────────────────────────────────────────────
-    y = height - 120
+    y = height - 130  # Account for report type badge
 
     # ── Section 1: System Overview ─────────────────────────────────────────────
     _draw_section_title(c, y, "1. System Overview")
@@ -116,7 +151,7 @@ def generate_pdf_report():
         ["Vision System", "YOLOv8n (Indian Vehicle Dataset Fine-Tuned)"],
         ["Data Sources", "TomTom Traffic Flow API + YOLO Computer Vision"],
         ["Generated At", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S IST")],
-        ["Data Verification", "CONFIRMED — Live Supabase Query"],
+        ["Data Verification", "CONFIRMED — Live Supabase Query" if (total_traffic_reads >= 10 and total_logs > 0) else "⚠ FAILED — LOW DATA"],
     ]
     for label, val in rows:
         c.setFont("Helvetica-Bold", 9)

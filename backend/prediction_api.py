@@ -6,25 +6,16 @@ Implements:
   - /api/incidents : Incident anomaly detection from density deltas
 """
 
-import os
 import math
 import time
 import datetime
-from fastapi import APIRouter, Depends, HTTPException
+import os
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from bangalore_api import build_zone_snapshots
+from supabase.client import create_client, Client
 
 router = APIRouter()
-
-
-# ── Bangalore calibrated traffic pattern (empirical) ─────────────────────────
-# Based on real Bangalore hourly congestion profiles (TomTom historical)
-HOURLY_BASELINE = {
-    0: 15, 1: 10, 2: 8, 3: 7, 4: 9, 5: 18,
-    6: 35, 7: 72, 8: 85, 9: 88, 10: 70,
-    11: 58, 12: 55, 13: 52, 14: 50, 15: 52,
-    16: 60, 17: 82, 18: 90, 19: 88, 20: 78,
-    21: 65, 22: 48, 23: 30
-}
 
 MAJOR_JUNCTIONS = [
     {"id": "silk-board", "name": "Silk Board Junction", "lat": 12.9176, "lon": 77.6238},
@@ -35,33 +26,58 @@ MAJOR_JUNCTIONS = [
     {"id": "outer-ring", "name": "Outer Ring Road", "lat": 12.9779, "lon": 77.7023},
 ]
 
+SUPABASE_URL = os.getenv("VITE_SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 
-def _forecast_congestion(current_congestion: float, hours_ahead_minutes: int) -> list[dict]:
+
+def _get_supabase() -> Client | None:
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        return None
+    try:
+        return create_client(SUPABASE_URL, SUPABASE_KEY)
+    except Exception as exc:
+        print(f"[prediction_api] Supabase unavailable: {exc}")
+        return None
+
+
+def _get_recent_density_history(limit: int = 12) -> list[float]:
+    sb = _get_supabase()
+    if not sb:
+        return []
+    try:
+        rows = sb.table("intersection_snapshots").select("density").order("created_at", desc=True).limit(limit).execute().data or []
+        values = [row.get("density") for row in reversed(rows) if isinstance(row.get("density"), (int, float))]
+        return values
+    except Exception as exc:
+        print(f"[prediction_api] Density history unavailable: {exc}")
+        return []
+
+
+def _forecast_congestion(current_congestion: float, hours_ahead_minutes: int, history: list[float]) -> list[dict]:
     """
-    Generates a 30-minute ahead forecast using Bangalore hourly profile extrapolation.
-    Falls back gracefully if pmdarima ARIMA is unavailable.
+    Generates a 30-minute ahead forecast using recent live density history.
     """
     now = datetime.datetime.now()
     steps = hours_ahead_minutes // 5  # 5-minute intervals
+    if len(history) >= 2:
+        trend = history[-1] - history[-2]
+    else:
+        trend = 0.0
 
     results = []
+    current_value = current_congestion
     for i in range(1, steps + 1):
         future_dt = now + datetime.timedelta(minutes=i * 5)
-        future_hour = future_dt.hour
-        next_hour = (future_hour + 1) % 24
-
-        base_current = HOURLY_BASELINE.get(future_hour, 50)
-        base_next = HOURLY_BASELINE.get(next_hour, 50)
-        minute_fraction = future_dt.minute / 60.0
-        interpolated = base_current + (base_next - base_current) * minute_fraction
-
-        # Blend with current observation (50% weight on current)
-        blend_weight = max(0, 1 - i / steps) * 0.5
-        blended = interpolated + blend_weight * (current_congestion - interpolated)
-
-        # Add small realistic noise (avoid Math.random style — use deterministic hash)
-        noise = math.sin(i * 7.3 + current_congestion) * 3
-        final = max(5, min(95, blended + noise))
+        projected = current_value + trend
+        if history:
+            observed_floor = min(history[-min(len(history), 6):])
+            observed_ceiling = max(history[-min(len(history), 6):])
+            lower_bound = max(0.0, observed_floor - 10)
+            upper_bound = min(100.0, observed_ceiling + 10)
+            final = max(lower_bound, min(upper_bound, projected))
+        else:
+            final = max(0.0, min(100.0, projected))
+        current_value = final
 
         level = ("Critical" if final >= 80 else "High" if final >= 60
                  else "Medium" if final >= 35 else "Low")
@@ -86,18 +102,21 @@ def predict_traffic(current_congestion: float = 65.0, horizon_minutes: int = 30)
         raise HTTPException(status_code=400, detail="horizon_minutes must be 5–120.")
 
     now = datetime.datetime.now()
-    forecasts = _forecast_congestion(current_congestion, horizon_minutes)
+    history = _get_recent_density_history()
+    forecasts = _forecast_congestion(current_congestion, horizon_minutes, history)
 
-    # Per-junction forecasts (slight spatial variation)
+    zone_snapshots = build_zone_snapshots()
     junction_forecasts = []
-    for j in MAJOR_JUNCTIONS:
-        variation = round(math.sin(j["lat"] * j["lon"]) * 10, 1)
-        base = forecasts[-1]["congestion_pct"]
-        final_congestion = max(5, min(95, base + variation))
+    trend_delta = forecasts[-1]["congestion_pct"] - current_congestion if forecasts else 0.0
+    for zone in zone_snapshots:
+        if not zone.get("available"):
+            continue
+        base = zone["congestion_pct"]
+        final_congestion = max(0, min(100, base + trend_delta))
         level = "Critical" if final_congestion >= 80 else "High" if final_congestion >= 60 else "Medium" if final_congestion >= 35 else "Low"
         junction_forecasts.append({
-            "id": j["id"],
-            "name": j["name"],
+            "id": zone["id"],
+            "name": zone["name"],
             "predicted_congestion_pct": final_congestion,
             "level": level,
             "predicted_speed_kmph": round(max(5, 55 * (1 - final_congestion / 100)), 1),
@@ -121,7 +140,7 @@ def predict_traffic(current_congestion: float = 65.0, horizon_minutes: int = 30)
         "peak_predicted_congestion": peak_forecast["congestion_pct"],
         "peak_predicted_time": peak_forecast["time"],
         "ai_recommendation": recommendation,
-        "model": "Bangalore Empirical Profile + Linear Blend (ARIMA-ready)",
+        "model": "Live Trend Projection",
     }
 
 

@@ -1,16 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect } from "react";
 import { z } from "zod";
 
 // --- Validation Schemas ---
 
 const signalLogSchema = z.object({
-  agent_name: z.string().trim().min(1).max(100),
-  action: z.string().trim().min(1).max(100),
-  message: z.string().trim().min(1).max(500),
-  log_type: z.enum(["INFO", "WARN", "ERROR", "SUCCESS", "ALERT", "LEARN", "DEBUG"]),
+  agent_name: z.string(),
+  action: z.string(),
+  reasoning: z.string(),
+  impact: z.enum(["INFO", "WARN", "ERROR", "SUCCESS"]).optional().default("INFO"),
 });
 
 const performanceMetricsSchema = z.object({
@@ -43,39 +42,20 @@ import { fetchApi } from "@/lib/fetchApi";
 
 export function useSignalLogs() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
 
-  const query = useQuery({
+  return useQuery({
     queryKey: ["signal_logs"],
     queryFn: async () => {
       try {
         const res = await fetchApi("/api/audit/logs?limit=50");
         return res.logs || [];
-      } catch (e) {
-        // Fallback for demo if backend is entirely shut down and fetchApi max retries fail
-        return [
-          {
-            id: "fallback-1", created_at: new Date().toISOString(),
-            log_type: "INFO", agent_name: "Audit Fallback", message: "System offline. Showing generic fallback logs."
-          }
-        ];
+      } catch {
+        return [];
       }
     },
     enabled: !!user,
+    refetchInterval: 5000,
   });
-
-  useEffect(() => {
-    if (!user) return;
-    const channel = supabase
-      .channel("signal_logs_realtime")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "signal_logs" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["signal_logs"] });
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient]);
-
-  return query;
 }
 
 export function useInsertSignalLog() {
@@ -90,8 +70,8 @@ export function useInsertSignalLog() {
         const { error } = await supabase.from("signal_logs").insert([{
           agent_name: validated.agent_name,
           action: validated.action,
-          message: validated.message,
-          log_type: validated.log_type,
+          reasoning: validated.reasoning,
+          impact: validated.impact,
           user_id: user.id,
         }]);
         if (error) console.warn("DB insert log failed:", error.message);
@@ -105,76 +85,38 @@ export function useInsertSignalLog() {
 
 export function usePerformanceMetrics() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
 
-  const query = useQuery({
+  return useQuery({
     queryKey: ["performance_metrics"],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase
-          .from("performance_metrics")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .limit(1);
-        if (error) throw error;
-        return data?.[0] ?? null;
-      } catch (e) {
+        const res = await fetchApi("/api/system/metrics/history?limit=1");
+        return res.rows?.[0] ?? null;
+      } catch {
         return null;
       }
     },
     enabled: !!user,
     refetchInterval: 5000,
   });
-
-  useEffect(() => {
-    if (!user) return;
-    const channel = supabase
-      .channel("performance_metrics_realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "performance_metrics" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["performance_metrics"] });
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient]);
-
-  return query;
 }
 
 export function useHistoricalPerformanceMetrics() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
 
-  const query = useQuery({
+  return useQuery({
     queryKey: ["performance_metrics_historical"],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase
-          .from("performance_metrics")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .limit(20);
-        if (error) throw error;
-        return data ? [...data].reverse() : [];
-      } catch (e) {
+        const res = await fetchApi("/api/system/metrics/history?limit=20");
+        return res.rows || [];
+      } catch {
         return [];
       }
     },
     enabled: !!user,
     refetchInterval: 5000,
   });
-
-  useEffect(() => {
-    if (!user) return;
-    const channel = supabase
-      .channel("performance_metrics_historical_realtime")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "performance_metrics" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["performance_metrics_historical"] });
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user, queryClient]);
-
-  return query;
 }
 
 export function useInsertPerformanceMetrics() {
@@ -212,14 +154,9 @@ export function useTrafficData() {
     queryKey: ["traffic_data"],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase
-          .from("traffic_data")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .limit(50);
-        if (error) throw error;
-        return data || [];
-      } catch (e) {
+        const res = await fetchApi("/api/system/intersections/history?limit=50");
+        return res.rows || [];
+      } catch {
         return [];
       }
     },

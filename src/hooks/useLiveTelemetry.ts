@@ -1,12 +1,13 @@
 /**
  * useLiveTelemetry.ts — Real-time WebSocket hook for backend telemetry
  *
- * Connects to ws://localhost:8000/ws/telemetry and publishes live metrics
- * to all subscribers. Includes demo-safe Bangalore fallback when backend
- * is offline so the UI never shows zeros.
+ * Connects to the backend telemetry stream and publishes only backend-provided
+ * metrics. No synthetic fallback data is injected on the client.
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { TELEMETRY_WS_URL } from "@/lib/runtimeConfig";
+import { useSystemWeather } from "@/hooks/useSystemStatus";
 
 export interface TelemetryPayload {
     type: "telemetry";
@@ -21,6 +22,12 @@ export interface TelemetryPayload {
     ew_queue: number;
     grid_congestion: Record<string, number>;
     live_incidents: any[];
+    telemetry_status: "live" | "stale" | "degraded" | "offline";
+    data_source: string;
+    data_freshness_ms: number;
+    vision_state: "active" | "degraded" | "disconnected" | "not_installed";
+    backend_online: boolean;
+    last_updated: number;
 }
 
 // Zero-state payload — displayed while WebSocket is connecting
@@ -38,6 +45,12 @@ const EMPTY_TELEMETRY: TelemetryPayload = {
     ew_queue: 0,
     grid_congestion: {},
     live_incidents: [],
+    telemetry_status: "offline",
+    data_source: "unavailable",
+    data_freshness_ms: 0,
+    vision_state: "disconnected",
+    backend_online: false,
+    last_updated: 0,
 };
 
 
@@ -59,12 +72,20 @@ export function useLiveTelemetry() {
             if (wsRef.current) wsRef.current.close();
 
             try {
-                const ws = new WebSocket("ws://localhost:8000/ws/telemetry");
+                const ws = new WebSocket(TELEMETRY_WS_URL);
                 wsRef.current = ws;
+
+                let pingTimer: ReturnType<typeof setInterval>;
 
                 ws.onopen = () => {
                     setConnected(true);
                     stopFallback();
+                    // Send keepalive ping every 15s to prevent silent disconnects
+                    pingTimer = setInterval(() => {
+                        if (ws.readyState === WebSocket.OPEN) {
+                            ws.send(JSON.stringify({ type: "ping" }));
+                        }
+                    }, 15000);
                 };
 
                 ws.onmessage = (evt) => {
@@ -81,12 +102,13 @@ export function useLiveTelemetry() {
                 };
 
                 ws.onclose = () => {
+                    clearInterval(pingTimer);
                     setConnected(false);
                     wsRef.current = null;
-                    retryTimer = setTimeout(connect, 8000);
+                    retryTimer = setTimeout(connect, 3000); // retry every 3s
                 };
             } catch {
-                retryTimer = setTimeout(connect, 8000);
+                retryTimer = setTimeout(connect, 3000);
             }
         };
 
@@ -101,10 +123,11 @@ export function useLiveTelemetry() {
     return { data, connected, usingFallback };
 }
 
-/** Weather state from OpenWeatherMap, with calibrated Bangalore fallback */
+/** Weather state sourced from the backend weather endpoint */
 export interface WeatherState {
+    available: boolean;
     condition: string;
-    temp: number;
+    temp: number | null;
     description: string;
     icon: string;
 }
@@ -115,34 +138,15 @@ const WEATHER_ICON_MAP: Record<string, string> = {
 };
 
 export function useLiveWeather() {
-    const [weather, setWeather] = useState<WeatherState>({
-        condition: "Clear", temp: 28.5, description: "Partly Cloudy", icon: "☀️"
-    });
+    const { data } = useSystemWeather();
+    const condition = data?.condition ? String(data.condition) : "Unavailable";
+    const normalized = condition.toLowerCase();
 
-    useEffect(() => {
-        const OWM_KEY = import.meta.env.VITE_OWM_KEY || "";
-        const fetchWeather = async () => {
-            if (!OWM_KEY) return; // stay on fallback
-            try {
-                const res = await fetch(
-                    `https://api.openweathermap.org/data/2.5/weather?lat=12.9716&lon=77.5946&appid=${OWM_KEY}&units=metric`
-                );
-                if (res.ok) {
-                    const d = await res.json();
-                    const main = d.weather[0].main.toLowerCase();
-                    setWeather({
-                        condition: d.weather[0].main,
-                        temp: Math.round(d.main.temp),
-                        description: d.weather[0].description,
-                        icon: WEATHER_ICON_MAP[main] ?? "🌡️",
-                    });
-                }
-            } catch { }
-        };
-        fetchWeather();
-        const timer = setInterval(fetchWeather, 300_000); // every 5 min
-        return () => clearInterval(timer);
-    }, []);
-
-    return weather;
+    return {
+        available: Boolean(data?.available),
+        condition,
+        temp: typeof data?.temp === "number" ? Math.round(data.temp) : null,
+        description: data?.available ? `${data.source} live weather` : "Live weather unavailable",
+        icon: WEATHER_ICON_MAP[normalized] ?? "🌡️",
+    };
 }

@@ -1,15 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Activity, Clock, TrendingUp, AlertTriangle, ShieldAlert } from "lucide-react";
+import { TrendingUp, ShieldAlert } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
 import { fetchApi } from "../lib/fetchApi";
-
-// Helper to add minutes to time string "HH:MM"
-function addMinutesAndFormat(date: Date, minutes: number) {
-    const d = new Date(date.getTime() + minutes * 60000);
-    return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-}
 
 export default function TrafficPrediction() {
     const { data: telemetry } = useLiveTelemetry();
@@ -19,9 +13,15 @@ export default function TrafficPrediction() {
 
     useEffect(() => {
         const fetchPredictions = async () => {
+            if (telemetry.telemetry_status === "offline") {
+                setPredictionData([]);
+                setHotspots([]);
+                setLoading(false);
+                return;
+            }
             setLoading(true);
             try {
-                const resp = await fetchApi(`/api/predict?current_congestion=${telemetry?.density || 60}&horizon_minutes=30`);
+                const resp = await fetchApi(`/api/predict?current_congestion=${telemetry.density}&horizon_minutes=30`);
                 const forecast = [
                     { time: "Now", density: resp.current_congestion_pct, predicted: false },
                     ...resp["5min_intervals"].map((f: any) => ({
@@ -36,12 +36,13 @@ export default function TrafficPrediction() {
             } catch {
                 // API unavailable — show empty state, never fake data
                 setPredictionData([]);
+                setHotspots([]);
                 setLoading(false);
             }
         };
         const t = setTimeout(fetchPredictions, 800);
         return () => clearTimeout(t);
-    }, [telemetry?.density]);
+    }, [telemetry.density, telemetry.telemetry_status]);
 
     const isPeakSoon = predictionData.length > 0 && predictionData[predictionData.length - 1].density > 80;
 
@@ -53,7 +54,7 @@ export default function TrafficPrediction() {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-3xl font-heading font-bold tracking-wide">TRAFFIC PREDICTION</h1>
-                        <p className="text-muted-foreground text-sm">30-Minute Deep Learning Forecast (AutoARIMA/Transformer)</p>
+                        <p className="text-muted-foreground text-sm">Live trend projection from recent telemetry history</p>
                     </div>
                 </div>
 
@@ -81,9 +82,9 @@ export default function TrafficPrediction() {
                         <div className="h-[400px] w-full">
                             {loading ? (
                                 <div className="w-full h-full flex items-center justify-center font-mono text-muted-foreground animate-pulse">
-                                    Simulating Future Timesteps...
+                                    Loading live prediction data...
                                 </div>
-                            ) : (
+                            ) : predictionData.length > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%">
                                     <AreaChart data={predictionData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                         <defs>
@@ -103,6 +104,10 @@ export default function TrafficPrediction() {
                                         <Area type="monotone" dataKey="density" stroke="#38bdf8" strokeWidth={3} fillOpacity={1} fill="url(#colorDensity)" />
                                     </AreaChart>
                                 </ResponsiveContainer>
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center font-mono text-muted-foreground">
+                                    Waiting for live prediction data...
+                                </div>
                             )}
                         </div>
                     </div>
@@ -142,7 +147,7 @@ export default function TrafficPrediction() {
                                 </motion.div>
                             )
                         }) : (
-                            <div className="text-sm text-muted-foreground italic px-2">Backend nodes offline. Showing primary region limit.</div>
+                            <div className="text-sm text-warning italic px-2">Live prediction data unavailable. Waiting for backend telemetry history...</div>
                         )}
                     </div>
                 </div>

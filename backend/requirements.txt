@@ -7,3 +7,13 @@ python-jose==3.3.0
 langchain==0.2.1
 langchain-openai==0.1.7
 langchain-community==0.2.1
+requests
+gymnasium
+stable-baselines3
+psutil
+ultralytics
+opencv-python
+python-multipart
+reportlab
+pmdarima
+pandas

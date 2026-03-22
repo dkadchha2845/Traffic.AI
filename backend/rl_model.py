@@ -1,10 +1,12 @@
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
-import random
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 import os
+
+_MODEL = None
+_MODEL_STATUS = {"loaded": False, "error": None, "path": None}
 
 class TrafficIntersectionEnv(gym.Env):
     """
@@ -83,13 +85,37 @@ def train_ppo_model(timesteps=5000):
     print(f"Model trained and saved to {model_path}.zip")
     return model_path
 
+def _get_model_path():
+    return os.path.join(os.path.dirname(__file__), "ppo_traffic_model.zip")
+
+def load_model():
+    global _MODEL
+    model_path = _get_model_path()
+    _MODEL_STATUS["path"] = model_path
+    if _MODEL is not None:
+        return _MODEL
+    if not os.path.exists(model_path):
+        _MODEL_STATUS["loaded"] = False
+        _MODEL_STATUS["error"] = f"Model file missing: {model_path}"
+        return None
+    try:
+        _MODEL = PPO.load(model_path)
+        _MODEL_STATUS["loaded"] = True
+        _MODEL_STATUS["error"] = None
+        return _MODEL
+    except Exception as exc:
+        _MODEL_STATUS["loaded"] = False
+        _MODEL_STATUS["error"] = str(exc)
+        return None
+
+def get_model_status():
+    return dict(_MODEL_STATUS)
+
 def predict_action(observation):
     # observation = [North_Queue, South_Queue, East_Queue, West_Queue]
-    model_path = os.path.join(os.path.dirname(__file__), "ppo_traffic_model.zip")
-    if not os.path.exists(model_path):
+    model = load_model()
+    if model is None:
         return 0 # Default fallback if model isn't trained yet
-        
-    model = PPO.load(model_path)
     # The model expects a batch or a single observation matching the box shape
     action, _states = model.predict(np.array(observation, dtype=np.int32), deterministic=True)
     return int(action)

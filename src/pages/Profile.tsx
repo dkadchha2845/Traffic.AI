@@ -272,10 +272,10 @@ export default function Profile() {
         {/* Stats Row */}
         <motion.div variants={fadeIn} initial="hidden" animate="visible" className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: "Missions", value: "247", icon: Globe },
-            { label: "Uptime", value: "99.9%", icon: Shield },
-            { label: "Sectors", value: "12", icon: MapPin },
-            { label: "Rank", value: `Level ${profile?.access_level || 1}`, icon: Briefcase },
+            { label: "Role", value: role || "Unassigned", icon: Briefcase },
+            { label: "Access", value: `Level ${profile?.access_level || 1}`, icon: Shield },
+            { label: "Department", value: department || "Unassigned", icon: MapPin },
+            { label: "Email Status", value: user?.email_confirmed_at ? "Verified" : "Pending", icon: Globe },
           ].map((s) => (
             <div key={s.label} className="glass rounded-2xl p-5 text-center card-hover">
               <s.icon className="w-6 h-6 text-primary mx-auto mb-3" />

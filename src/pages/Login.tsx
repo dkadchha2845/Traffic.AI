@@ -5,7 +5,7 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight, Shield, Zap, Satellite, User, Phon
 import { motion, useSpring } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { lovable } from "@/integrations/lovable/index";
+
 import { toast } from "sonner";
 
 function FloatingOrb({ delay, x, y, size, color }: { delay: number; x: string; y: string; size: string; color: string }) {

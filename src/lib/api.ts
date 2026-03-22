@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
+import { API_BASE_URL } from "./runtimeConfig";
 
-const API_BASE_URL = "http://localhost:8000/api";
+const AGENT_API_BASE_URL = `${API_BASE_URL}/api`;
 
 /**
  * Helper utility to get the current Supabase session token.
@@ -26,7 +27,7 @@ export async function askRagAgent(query: string) {
     }
 
     // The backend expects `query` as a query parameter (defined as query: str in FastAPI)
-    const response = await fetch(`${API_BASE_URL}/rag/chat?query=${encodeURIComponent(query)}`, {
+    const response = await fetch(`${AGENT_API_BASE_URL}/rag/chat?query=${encodeURIComponent(query)}`, {
         method: "POST",
         headers: {
             "Authorization": `Bearer ${token}`,

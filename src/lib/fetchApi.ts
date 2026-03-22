@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { API_BASE_URL } from "./runtimeConfig";
 
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 1000;
@@ -10,7 +10,7 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
 
     for (let i = 0; i <= MAX_RETRIES; i++) {
         try {
-            const response = await fetch(`${API_BASE}${endpoint}`, {
+            const response = await fetch(`${API_BASE_URL}${endpoint}`, {
                 ...options,
                 headers: {
                     "Content-Type": "application/json",

@@ -287,3 +287,51 @@
 .animate-orbit {
   animation: orbit 20s linear infinite;
 }
+
+/* Leaflet Custom Styles */
+.leaflet-container {
+  background: #060608 !important;
+  font-family: 'Space Grotesk', sans-serif !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: rgba(15, 15, 20, 0.85) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
+}
+
+.leaflet-popup-tip {
+  background: rgba(15, 15, 20, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  line-height: inherit !important;
+}
+
+.custom-map-popup .leaflet-popup-content {
+  width: auto !important;
+}
+
+.leaflet-vignette {
+  box-shadow: inset 0 0 150px black;
+  pointer-events: none;
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  z-index: 401;
+}
+
+/* Pulse animation for roads */
+@keyframes dash-pulse {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+.leaflet-interactive[stroke-dasharray] {
+  animation: dash-pulse 2s linear infinite;
+}

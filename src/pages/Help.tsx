@@ -18,7 +18,7 @@ const categories = [
     title: "AI Agents",
     icon: Brain,
     articles: [
-      { title: "Multi-Agent Architecture", desc: "How our 6 specialized agents work together to optimize traffic." },
+      { title: "Multi-Agent Architecture", desc: "How the specialized agents work together to optimize traffic." },
       { title: "Training the LearningAgent", desc: "Configure reward functions and training cycles for your model." },
       { title: "Agent Communication Protocol", desc: "Understanding JSON payload exchange between autonomous agents." },
     ]
@@ -44,10 +44,10 @@ const categories = [
 ];
 
 const faqs = [
-  { q: "How does the AI decide signal timing?", a: "Our DecisionAgent uses reinforcement learning with a reward function optimized for throughput, waiting time, and fuel efficiency. It processes real-time sensor data and historical patterns to make sub-millisecond adjustments." },
+  { q: "How does the AI decide signal timing?", a: "The DecisionAgent uses reinforcement learning and live telemetry to recommend phase adjustments while operators retain manual override capability." },
   { q: "Can I override AI decisions manually?", a: "Yes. Authorized operators can trigger Emergency Override from the dashboard. The system provides green-wave corridors while maintaining safe signal transitions at surrounding intersections." },
-  { q: "How accurate are traffic predictions?", a: "Our AnalyticsAgent achieves 94% accuracy for 30-minute predictions and 87% for 60-minute forecasts, trained on your city's specific traffic patterns." },
-  { q: "Is the data encrypted?", a: "All data is encrypted at rest and in transit using AES-256. Row-level security ensures operators only see data from their authorized sectors." },
+  { q: "How accurate are traffic predictions?", a: "Prediction quality depends on the amount and freshness of live historical telemetry available for your network. Evaluate forecasts against your own operational data before relying on them for control decisions." },
+  { q: "Is the data encrypted?", a: "Authentication and row-level security are enforced through Supabase. Confirm your deployment's transport security, database encryption, and secret management in the hosting environment." },
 ];
 
 export default function Help() {

@@ -12,6 +12,7 @@ import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
 import { useLiveWeather } from "@/hooks/useLiveTelemetry";
 import { useSignalLogs } from "@/hooks/useTrafficDB";
 import { fetchApi } from "../lib/fetchApi";
+import { API_BASE_URL } from "@/lib/runtimeConfig";
 
 /** Pings /api/health every 10s — independent of WebSocket state */
 function useBackendOnline() {
@@ -19,7 +20,7 @@ function useBackendOnline() {
   useEffect(() => {
     const check = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:8000"}/api/health`, { signal: AbortSignal.timeout(3000) });
+        const res = await fetch(`${API_BASE_URL}/api/health`, { signal: AbortSignal.timeout(3000) });
         setOnline(res.ok);
       } catch {
         setOnline(false);
@@ -38,24 +39,37 @@ const fade = { hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0, trans
 interface SimOutput {
   junction: string;
   junction_id: string;
-  simulated_at: string;
-  inputs: {
-    density: number; density_source: string;
-    weather: string; weather_source: string;
-    weather_factor: number; event: string;
-    hour: number; peak_hour: boolean; emergency: boolean;
+  analysis_at: string;
+  data_status: "live" | "partial" | "unavailable";
+  ignored_inputs: string[];
+  traffic: {
+    available: boolean;
+    density_pct: number | null;
+    current_speed_kmph: number | null;
+    free_flow_speed_kmph: number | null;
+    source: string;
   };
-  outputs: {
-    adjusted_density_pct: number;
-    congestion_level: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-    congestion_color: string;
-    queue_per_lane: number;
-    total_queue_vehicles: number;
-    avg_speed_kmph: number;
-    signal_timing: { ns_green_seconds: number; ew_green_seconds: number };
-    estimated_clearance_minutes: number;
-    ai_recommendation: string;
+  weather: {
+    available: boolean;
+    condition: string | null;
+    temp_c: number | null;
+    visibility_m: number | null;
+    source: string;
   };
+  snapshot: {
+    available: boolean;
+    source: string;
+    recorded_at: string | null;
+    vehicle_count: number | null;
+    signal_phase: string | null;
+    lane_queues: { north: number | null; south: number | null; east: number | null; west: number | null };
+    axis_queues: { ns: number | null; ew: number | null };
+    total_queue_vehicles: number | null;
+    telemetry_status: string | null;
+    mode: string | null;
+    emergency_active: boolean | null;
+  };
+  summary: string;
 }
 
 interface ChatMsg { role: "user" | "ai"; text: string; ctx?: string; time: string }
@@ -95,8 +109,8 @@ const LOG_TYPE_STYLE: Record<string, string> = {
 };
 
 // ── Queue Bar component ───────────────────────────────────────────────────────
-function QueueBar({ label, count, max }: { label: string; count: number; max: number }) {
-  const pct = Math.round((count / Math.max(max, 1)) * 100);
+function QueueBar({ label, count, max }: { label: string; count: number | null; max: number }) {
+  const pct = count != null ? Math.round((count / Math.max(max, 1)) * 100) : 0;
   const color = pct > 80 ? "#ef4444" : pct > 60 ? "#f59e0b" : pct > 35 ? "#8b5cf6" : "#22c55e";
   return (
     <div className="flex items-center gap-2 text-xs">
@@ -110,7 +124,7 @@ function QueueBar({ label, count, max }: { label: string; count: number; max: nu
           transition={{ duration: 0.8, ease: "easeOut" }}
         />
       </div>
-      <span className="w-10 text-right font-mono" style={{ color }}>{count}</span>
+      <span className="w-10 text-right font-mono" style={{ color }}>{count ?? "—"}</span>
     </div>
   );
 }
@@ -121,7 +135,7 @@ export default function CommandCenter() {
   const { data: logs } = useSignalLogs();
   const backendOnline = useBackendOnline();
 
-  // ── Simulation state ──────────────────────────────────────────────────────
+  // ── Live junction analysis state ──────────────────────────────────────────
   const [junctionId, setJunctionId] = useState("silk-board");
   const [density, setDensity] = useState<number | "">("");
   const [timeHour, setTimeHour] = useState<number | "">(new Date().getHours());
@@ -161,41 +175,31 @@ export default function CommandCenter() {
     setAutoFilling(true);
     try {
       const data = await fetchApi(`/api/simulate/autofill?junction_id=${junctionId}`);
-      setDensity(data.density);
-      setTimeHour(data.hour);
-      setWeatherInput(data.weather);
-      toast.success(`Auto-filled from live APIs · ${data.density}% density · ${data.weather}`);
+      setDensity(typeof data.density === "number" ? data.density : "");
+      setTimeHour(data.updated_at ? new Date(data.updated_at).getHours() : new Date().getHours());
+      setWeatherInput(data.weather ?? "auto");
+      toast.success(
+        `Live reference refreshed · ${data.density ?? "—"}% density · ${data.current_speed_kmph ?? "—"} km/h`
+      );
     } catch {
-      // Use telemetry fallback
-      setDensity(Math.round(telemetry.density));
-      setTimeHour(new Date().getHours());
-      toast.info("Using local telemetry for auto-fill (API offline)");
+      toast.error("Live auto-fill unavailable. No fallback values applied.");
     } finally {
       setAutoFilling(false);
     }
   }, [junctionId, telemetry]);
 
-  // ── Run simulation ────────────────────────────────────────────────────────
+  // ── Run live analysis ─────────────────────────────────────────────────────
   const handleSimulate = async () => {
     setSimLoading(true);
     try {
-      const body: Record<string, unknown> = {
-        junction_id: junctionId,
-        event,
-        emergency,
-      };
-      if (density !== "") body.density = density;
-      if (timeHour !== "") body.time_of_day = timeHour;
-      if (weatherInput !== "auto") body.weather = weatherInput;
-
       const result = await fetchApi("/api/simulate", {
         method: "POST",
-        body: JSON.stringify(body),
+        body: JSON.stringify({ junction_id: junctionId }),
       });
       setSimResult(result);
-      toast.success(`Simulation complete · ${result.outputs.congestion_level} congestion`);
+      toast.success(`Live analysis updated · ${result.data_status}`);
     } catch (e) {
-      toast.error("Simulation failed. Check backend connection.");
+      toast.error("Live analysis failed. Check backend connection.");
     } finally {
       setSimLoading(false);
     }
@@ -223,9 +227,9 @@ export default function CommandCenter() {
       setEmergencyRoute(stops);
       toast.success(resp.message || "Green-wave corridor activated!");
     } catch {
-      setEmergencyActive(true);
-      setEmergencyRoute(`${JUNCTIONS.find(j => j.id === emergencyOrigin)?.name} → ${JUNCTIONS.find(j => j.id === emergencyDest)?.name} (Offline Mode)`);
-      toast.success("Emergency corridor activated (offline mode).");
+      toast.error("Failed to activate emergency corridor. Backend offline.");
+      setEmergencyActive(false);
+      setEmergencyRoute(null);
     }
   };
 
@@ -250,7 +254,7 @@ export default function CommandCenter() {
     } catch {
       setMessages(m => [...m, {
         role: "ai",
-        text: "⚠️ AI Assistant is offline. Backend connection lost. In offline mode: Bangalore peak hours are 7-10 AM and 5-9 PM. Silk Board is typically the most congested junction.",
+        text: "⚠️ Backend connection lost. Please ensure the Python server is running.",
         time: new Date().toLocaleTimeString(),
       }]);
     } finally {
@@ -259,14 +263,28 @@ export default function CommandCenter() {
   };
 
   // ── Derived display values ────────────────────────────────────────────────
-  const displayDensity = simResult?.outputs.adjusted_density_pct ?? Math.round(telemetry.density);
-  const displayLevel = simResult?.outputs.congestion_level ??
+  const displayDensity = simResult?.traffic.density_pct ?? Math.round(telemetry.density);
+  const displayLevel =
     (displayDensity >= 80 ? "CRITICAL" : displayDensity >= 60 ? "HIGH" : displayDensity >= 35 ? "MEDIUM" : "LOW");
   const levelStyle = LEVEL_STYLE[displayLevel] ?? LEVEL_STYLE.MEDIUM;
-  const displayVehicles = simResult ? simResult.outputs.total_queue_vehicles : telemetry.vehicle_count;
-  const displaySpeed = simResult?.outputs.avg_speed_kmph ?? Math.round(Math.max(5, 55 * (1 - telemetry.density / 100)));
-  const displayNsGreen = simResult?.outputs.signal_timing.ns_green_seconds ?? 40;
-  const displayEwGreen = simResult?.outputs.signal_timing.ew_green_seconds ?? 30;
+  const displayVehicles =
+    simResult?.snapshot.total_queue_vehicles ??
+    simResult?.snapshot.vehicle_count ??
+    telemetry.vehicle_count;
+  const displaySpeed =
+    simResult?.traffic.current_speed_kmph ??
+    Math.round(Math.max(5, 55 * (1 - telemetry.density / 100)));
+  const displayNsQueue = simResult?.snapshot.axis_queues.ns ?? telemetry.ns_queue;
+  const displayEwQueue = simResult?.snapshot.axis_queues.ew ?? telemetry.ew_queue;
+  const laneQueues = simResult?.snapshot.lane_queues ?? null;
+  const hasLaneSnapshot = laneQueues ? Object.values(laneQueues).some(value => value != null) : false;
+  const displaySignalPhase = simResult?.snapshot.signal_phase ?? telemetry.signal_phase;
+  const displaySignalLabel =
+    displaySignalPhase === "NS_GREEN"
+      ? "N/S GREEN"
+      : displaySignalPhase === "EW_GREEN"
+        ? "E/W GREEN"
+        : displaySignalPhase ?? "—";
 
   return (
     <div className="min-h-screen pt-20 pb-10 px-4">
@@ -277,7 +295,7 @@ export default function CommandCenter() {
           <div>
             <h1 className="text-3xl font-heading font-bold tracking-wide">Command Center</h1>
             <p className="text-muted-foreground text-sm mt-0.5">
-              Real-time Simulation Engine · AI Traffic Assistant · Live Operations
+              Real-time Junction Analysis · AI Traffic Assistant · Live Operations
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -300,15 +318,15 @@ export default function CommandCenter() {
         {/* ── ROW 1: SIMULATION INPUT + OUTPUT ───────────────────────────── */}
         <div className="grid lg:grid-cols-2 gap-5">
 
-          {/* Simulation Input Panel */}
+          {/* Live Analysis Input Panel */}
           <motion.div variants={fade} initial="hidden" animate="visible" className="glass rounded-2xl p-6 space-y-4 border-border/30">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
                 <Activity className="w-4.5 h-4.5 text-primary" />
               </div>
               <div>
-                <h2 className="font-heading font-semibold text-foreground">Traffic Simulation Engine</h2>
-                <p className="text-xs text-muted-foreground">Configure parameters · auto-fill from TomTom + OpenWeatherMap</p>
+                <h2 className="font-heading font-semibold text-foreground">Live Junction Analysis</h2>
+                <p className="text-xs text-muted-foreground">Live reference values from TomTom, OpenWeatherMap, and latest telemetry</p>
               </div>
             </div>
 
@@ -325,22 +343,24 @@ export default function CommandCenter() {
               {/* Density */}
               <div>
                 <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider block mb-1.5">
-                  Traffic Density (%) <span className="text-primary/60">or auto</span>
+                  Live Density Reference (%)
                 </label>
                 <input type="number" min={0} max={100}
                   value={density}
                   onChange={e => setDensity(e.target.value === "" ? "" : Number(e.target.value))}
-                  placeholder="Auto (live API)"
+                  placeholder="Refresh from live API"
+                  readOnly
                   className="w-full bg-secondary/60 border border-border/40 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/50"
                 />
               </div>
               {/* Time of Day */}
               <div>
-                <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider block mb-1.5">Time of Day (0-23)</label>
+                <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider block mb-1.5">Observed Hour (0-23)</label>
                 <input type="number" min={0} max={23}
                   value={timeHour}
                   onChange={e => setTimeHour(e.target.value === "" ? "" : Number(e.target.value))}
                   placeholder="Current hour"
+                  readOnly
                   className="w-full bg-secondary/60 border border-border/40 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/50"
                 />
               </div>
@@ -349,8 +369,8 @@ export default function CommandCenter() {
             <div className="grid grid-cols-2 gap-3">
               {/* Weather */}
               <div>
-                <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider block mb-1.5">Weather</label>
-                <select value={weatherInput} onChange={e => setWeatherInput(e.target.value)}
+                <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider block mb-1.5">Live Weather Reference</label>
+                <select value={weatherInput} onChange={e => setWeatherInput(e.target.value)} disabled
                   className="w-full bg-secondary/60 border border-border/40 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50">
                   <option value="auto">Auto (OpenWeatherMap)</option>
                   <option value="clear">☀️ Clear</option>
@@ -362,8 +382,8 @@ export default function CommandCenter() {
               </div>
               {/* Special Event */}
               <div>
-                <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider block mb-1.5">Special Event</label>
-                <select value={event} onChange={e => setEvent(e.target.value)}
+                <label className="text-xs font-mono text-muted-foreground uppercase tracking-wider block mb-1.5">Scenario Overrides</label>
+                <select value={event} onChange={e => setEvent(e.target.value)} disabled
                   className="w-full bg-secondary/60 border border-border/40 rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50">
                   {EVENTS.map(ev => <option key={ev.value} value={ev.value}>{ev.label}</option>)}
                 </select>
@@ -374,37 +394,44 @@ export default function CommandCenter() {
             <div className={`flex items-center justify-between p-3 rounded-xl border transition-all ${emergency ? "bg-destructive/10 border-destructive/40" : "bg-secondary/30 border-border/30"}`}>
               <div className="flex items-center gap-2">
                 <Ambulance className={`w-4 h-4 ${emergency ? "text-destructive" : "text-muted-foreground"}`} />
-                <span className="text-sm font-mono">Emergency Vehicle Present</span>
+                <span className="text-sm font-mono">Scenario Overrides Disabled</span>
               </div>
-              <button onClick={() => setEmergency(v => !v)}
-                className={`relative w-11 h-6 rounded-full transition-colors ${emergency ? "bg-destructive" : "bg-secondary"}`}>
+              <button
+                disabled
+                onClick={() => setEmergency(v => !v)}
+                className={`relative w-11 h-6 rounded-full transition-colors opacity-50 cursor-not-allowed ${emergency ? "bg-destructive" : "bg-secondary"}`}
+              >
                 <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${emergency ? "translate-x-5" : ""}`} />
               </button>
             </div>
+
+            <p className="text-[11px] text-muted-foreground">
+              Manual density, time, weather, event, and emergency overrides have been removed. This panel now reads live backend telemetry only.
+            </p>
 
             {/* Action buttons */}
             <div className="flex gap-3">
               <Button onClick={handleAutoFill} variant="outline" disabled={autoFilling} className="flex-1 gap-2 text-xs">
                 {autoFilling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                Auto-Fill from APIs
+                Refresh Live Values
               </Button>
               <Button onClick={handleSimulate} disabled={simLoading} className="flex-1 gap-2 text-xs glow-primary">
                 {simLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
-                Run Simulation
+                Run Live Analysis
               </Button>
             </div>
           </motion.div>
 
-          {/* Simulation Output Panel */}
+          {/* Live Analysis Output Panel */}
           <motion.div variants={fade} initial="hidden" animate="visible" className="glass rounded-2xl p-6 border-border/30 space-y-4">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center border border-accent/20">
                 <TrendingUp className="w-4.5 h-4.5 text-accent" />
               </div>
               <div>
-                <h2 className="font-heading font-semibold text-foreground">Simulation Output</h2>
+                <h2 className="font-heading font-semibold text-foreground">Live Analysis Output</h2>
                 <p className="text-xs text-muted-foreground">
-                  {simResult ? `${simResult.junction} · As of ${simResult.simulated_at}` : "Run simulation to see results"}
+                  {simResult ? `${simResult.junction} · As of ${new Date(simResult.analysis_at).toLocaleTimeString()}` : "Run live analysis to see results"}
                 </p>
               </div>
             </div>
@@ -412,7 +439,7 @@ export default function CommandCenter() {
             {/* Congestion Banner */}
             <div className={`p-4 rounded-xl border ${levelStyle.bg} ${levelStyle.border} flex items-center justify-between`}>
               <div>
-                <div className="text-xs font-mono text-muted-foreground uppercase mb-0.5">Predicted Congestion</div>
+                <div className="text-xs font-mono text-muted-foreground uppercase mb-0.5">Live Congestion</div>
                 <div className={`text-2xl font-heading font-bold ${levelStyle.text}`}>{displayLevel}</div>
               </div>
               <div className="text-right">
@@ -425,8 +452,14 @@ export default function CommandCenter() {
             <div className="grid grid-cols-3 gap-3">
               {[
                 { label: "Avg Speed", value: `${displaySpeed} km/h`, sub: "Current", icon: Car, color: "text-primary" },
-                { label: "Est. Clearance", value: `${simResult?.outputs.estimated_clearance_minutes ?? "--"} min`, sub: "To clear queue", icon: Clock, color: "text-accent" },
-                { label: "Queue (total)", value: `${displayVehicles}`, sub: "Vehicles waiting", icon: Activity, color: "text-warning" },
+                {
+                  label: "Snapshot",
+                  value: simResult?.snapshot.recorded_at ? new Date(simResult.snapshot.recorded_at).toLocaleTimeString() : "--",
+                  sub: simResult?.snapshot.source ?? "Unavailable",
+                  icon: Clock,
+                  color: "text-accent",
+                },
+                { label: "Observed Vehicles", value: `${displayVehicles}`, sub: "Latest record", icon: Activity, color: "text-warning" },
               ].map(m => (
                 <div key={m.label} className="bg-secondary/40 rounded-xl p-3 text-center">
                   <m.icon className={`w-4 h-4 mx-auto mb-1 ${m.color}`} />
@@ -436,44 +469,59 @@ export default function CommandCenter() {
               ))}
             </div>
 
-            {/* Signal Timing */}
+            {/* Signal State */}
             <div>
-              <div className="text-xs font-mono text-muted-foreground uppercase mb-2">Recommended Signal Timing</div>
+              <div className="text-xs font-mono text-muted-foreground uppercase mb-2">Live Signal State</div>
+              <div className="bg-secondary/40 rounded-xl p-3 flex items-center justify-between mb-3">
+                <div>
+                  <div className="text-[10px] text-muted-foreground uppercase font-mono">Current Phase</div>
+                  <div className="text-lg font-heading font-bold text-foreground">{displaySignalLabel}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] text-muted-foreground uppercase font-mono">Telemetry Status</div>
+                  <div className="text-sm font-mono text-foreground">{simResult?.snapshot.telemetry_status ?? simResult?.data_status ?? "—"}</div>
+                </div>
+              </div>
               <div className="space-y-2">
-                <QueueBar label="N-S" count={displayNsGreen} max={90} />
-                <QueueBar label="E-W" count={displayEwGreen} max={90} />
+                <QueueBar label="N-S" count={displayNsQueue} max={Math.max(displayNsQueue, displayEwQueue, 1)} />
+                <QueueBar label="E-W" count={displayEwQueue} max={Math.max(displayNsQueue, displayEwQueue, 1)} />
               </div>
               <div className="flex justify-between text-xs font-mono text-muted-foreground mt-1">
-                <span>NS: {displayNsGreen}s green</span>
-                <span>EW: {displayEwGreen}s green</span>
+                <span>NS queue: {displayNsQueue != null ? `${displayNsQueue} vehicles` : "—"}</span>
+                <span>EW queue: {displayEwQueue != null ? `${displayEwQueue} vehicles` : "—"}</span>
               </div>
             </div>
 
             {/* Queue per lane */}
-            {simResult && (
+            {simResult && hasLaneSnapshot && (
               <div>
-                <div className="text-xs font-mono text-muted-foreground uppercase mb-2">Vehicle Queue per Lane</div>
+                <div className="text-xs font-mono text-muted-foreground uppercase mb-2">Lane Queue Snapshot</div>
                 <div className="space-y-1.5">
-                  {["N", "S", "E", "W"].map((dir, i) => (
-                    <QueueBar key={dir} label={dir} count={simResult.outputs.queue_per_lane}
-                      max={Math.max(simResult.outputs.queue_per_lane * 2, 25)} />
-                  ))}
+                  <QueueBar label="N" count={laneQueues?.north ?? null} max={Math.max(laneQueues?.north ?? 0, laneQueues?.south ?? 0, laneQueues?.east ?? 0, laneQueues?.west ?? 0, 1)} />
+                  <QueueBar label="S" count={laneQueues?.south ?? null} max={Math.max(laneQueues?.north ?? 0, laneQueues?.south ?? 0, laneQueues?.east ?? 0, laneQueues?.west ?? 0, 1)} />
+                  <QueueBar label="E" count={laneQueues?.east ?? null} max={Math.max(laneQueues?.north ?? 0, laneQueues?.south ?? 0, laneQueues?.east ?? 0, laneQueues?.west ?? 0, 1)} />
+                  <QueueBar label="W" count={laneQueues?.west ?? null} max={Math.max(laneQueues?.north ?? 0, laneQueues?.south ?? 0, laneQueues?.east ?? 0, laneQueues?.west ?? 0, 1)} />
                 </div>
               </div>
             )}
 
-            {/* AI Recommendation */}
+            {/* Live Summary */}
             {simResult && (
               <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
-                <div className="text-xs font-mono text-primary uppercase mb-1">AI Recommendation</div>
-                <p className="text-sm text-foreground">{simResult.outputs.ai_recommendation}</p>
+                <div className="text-xs font-mono text-primary uppercase mb-1">Live Summary</div>
+                <p className="text-sm text-foreground">{simResult.summary}</p>
+                {simResult.ignored_inputs.length > 0 && (
+                  <p className="text-[11px] text-muted-foreground mt-2">
+                    Ignored manual inputs: {simResult.ignored_inputs.join(", ")}. Live backend data always takes priority.
+                  </p>
+                )}
               </div>
             )}
 
             {!simResult && (
               <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                 <Brain className="w-10 h-10 mb-2 opacity-30" />
-                <p className="text-sm">Configure inputs and run simulation to see AI analysis</p>
+                <p className="text-sm">Choose a junction and run live analysis to see current backend telemetry</p>
               </div>
             )}
           </motion.div>

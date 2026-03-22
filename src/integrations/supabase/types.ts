@@ -94,34 +94,37 @@ export type Database = {
       }
       signal_logs: {
         Row: {
-          action: string
-          agent_name: string
-          created_at: string
           id: string
-          intersection_id: string | null
-          log_type: string
-          message: string
           user_id: string
+          agent_name: string
+          action: string
+          reasoning: string
+          impact: string
+          signal_duration: number | null
+          mode: string | null
+          created_at: string
         }
         Insert: {
-          action: string
-          agent_name: string
-          created_at?: string
           id?: string
-          intersection_id?: string | null
-          log_type?: string
-          message: string
-          user_id: string
+          user_id?: string
+          agent_name: string
+          action: string
+          reasoning: string
+          impact: string
+          signal_duration?: number | null
+          mode?: string | null
+          created_at?: string
         }
         Update: {
-          action?: string
-          agent_name?: string
-          created_at?: string
           id?: string
-          intersection_id?: string | null
-          log_type?: string
-          message?: string
           user_id?: string
+          agent_name?: string
+          action?: string
+          reasoning?: string
+          impact?: string
+          signal_duration?: number | null
+          mode?: string | null
+          created_at?: string
         }
         Relationships: []
       }

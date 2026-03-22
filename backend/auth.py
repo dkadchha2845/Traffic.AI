@@ -9,7 +9,7 @@ load_dotenv()
 # We use the standard React frontend variables to initialize Supabase
 SUPABASE_URL = os.getenv("VITE_SUPABASE_URL", "")
 # We can just use the public ANON key for auth verification
-SUPABASE_ANON_KEY = os.getenv("VITE_SUPABASE_ANON_KEY", "")
+SUPABASE_ANON_KEY = os.getenv("VITE_SUPABASE_PUBLISHABLE_KEY", os.getenv("VITE_SUPABASE_ANON_KEY", ""))
 
 # Initialize the Supabase client
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)

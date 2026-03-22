@@ -3,8 +3,8 @@ import pmdarima as pm
 from supabase import create_client, Client
 import os
 
-url = os.environ.get("VITE_SUPABASE_URL", "")
-key = os.environ.get("VITE_SUPABASE_ANON_KEY", "")
+url = os.getenv("VITE_SUPABASE_URL", "")
+key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", os.getenv("VITE_SUPABASE_PUBLISHABLE_KEY", os.getenv("VITE_SUPABASE_ANON_KEY", "")))
 
 supabase: Client = None
 if url and key:
@@ -38,10 +38,10 @@ def generate_traffic_forecast(intersection_id: str = "BLR-CORE-1"):
         
         try:
             supabase.table("signal_logs").insert({
-                "agent_name": "AutoARIMA-Forecaster",
-                "action": "Congestion Prediction",
-                "message": f"Next 5 steps predicted density: {preds_list}",
-                "log_type": "INFO"
+                "agent_name": "PredictionAgent",
+                "action": "Forecast",
+                "reasoning": f"Generated 30-min AI traffic forecast based on {len(data)} data points.",
+                "impact": "INFO"
             }).execute()
         except Exception as e:
             print("AutoARIMA logging exception:", e)
