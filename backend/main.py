@@ -15,7 +15,14 @@ load_dotenv(dotenv_path=env_path)
 app = FastAPI(title="TrafficAI Backend API")
 
 # Configure CORS so the React frontend can talk to us
-allowed_origins = [origin.strip() for origin in os.getenv("FRONTEND_ORIGINS", "http://localhost:8080,http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173").split(",") if origin.strip()]
+# In production, specify your Vercel URL in FRONTEND_ORIGINS environment variable
+_raw_origins = os.getenv("FRONTEND_ORIGINS", "http://localhost:8080,http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173")
+allowed_origins = [origin.strip() for origin in _raw_origins.split(",") if origin.strip()]
+
+# If in a flexible environment (like Vercel proxy), we might want to allow more
+if os.getenv("ALLOW_ALL_CORS") == "true":
+    allowed_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,

@@ -1,26 +1,20 @@
 const isLocal = typeof window !== 'undefined' && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-const DEFAULT_API_URL = isLocal ? "http://localhost:8000" : (typeof window !== 'undefined' ? window.location.origin : "");
-const DEFAULT_WS_URL = isLocal ? "ws://localhost:8000/ws/telemetry" : (typeof window !== 'undefined' ? `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws/telemetry` : "");
 
-function normalizeBaseUrl(url: string) {
-  return url.replace(/\/+$/, "");
-}
+// Priority: 1. Env Var, 2. Localhost fallback, 3. Origin fallback (Vercel)
+export const API_BASE_URL = (import.meta.env.VITE_API_URL || 
+  (isLocal ? "http://localhost:8000" : (typeof window !== 'undefined' ? window.location.origin : ""))).replace(/\/+$/, "");
 
 function deriveWsUrl(apiUrl: string) {
-  const normalized = normalizeBaseUrl(apiUrl);
-  if (normalized.startsWith("https://")) {
-    return normalized.replace("https://", "wss://") + "/ws/telemetry";
+  if (apiUrl.startsWith("https://")) {
+    return apiUrl.replace("https://", "wss://") + "/ws/telemetry";
   }
-  if (normalized.startsWith("http://")) {
-    return normalized.replace("http://", "ws://") + "/ws/telemetry";
+  if (apiUrl.startsWith("http://")) {
+    return apiUrl.replace("http://", "ws://") + "/ws/telemetry";
   }
-  return DEFAULT_WS_URL;
+  // If absolute path or relative, use current host
+  const proto = typeof window !== 'undefined' && window.location.protocol === "https:" ? "wss:" : "ws:";
+  const host = typeof window !== 'undefined' ? window.location.host : "localhost:8000";
+  return `${proto}//${host}/ws/telemetry`;
 }
 
-export const API_BASE_URL = normalizeBaseUrl(
-  import.meta.env.VITE_API_URL || DEFAULT_API_URL,
-);
-
-export const TELEMETRY_WS_URL = normalizeBaseUrl(
-  import.meta.env.VITE_WS_URL || deriveWsUrl(API_BASE_URL),
-);
+export const TELEMETRY_WS_URL = import.meta.env.VITE_WS_URL || deriveWsUrl(API_BASE_URL);
