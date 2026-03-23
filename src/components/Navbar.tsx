@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Activity, Search, Bell, Menu, X, Map, FileText, HelpCircle, User, Settings, LogOut, ChevronDown, Shield } from "lucide-react";
+import { Activity, Bell, Menu, X, Map, FileText, HelpCircle, User, Settings, LogOut, ChevronDown, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useState, useEffect } from "react";
@@ -69,11 +69,7 @@ export default function Navbar() {
           <ThemeToggle />
           {session && !isLanding && !isLogin && (
             <>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input type="text" placeholder="Search..."
-                  className="h-9 pl-9 pr-4 rounded-xl bg-secondary/50 border border-border/30 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 w-40 backdrop-blur-sm" />
-              </div>
+
               <Link to="/notifications" className="relative p-2 rounded-lg hover:bg-secondary/50 transition-colors">
                 <Bell className="w-4 h-4 text-muted-foreground" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-destructive" />
@@ -101,7 +97,7 @@ export default function Navbar() {
               <DropdownMenuContent align="end" className="w-48 glass-strong border-border/50">
                 <div className="px-3 py-2">
                   <p className="text-xs font-heading tracking-wider text-foreground">{profile?.display_name || "Operator"}</p>
-                  <p className="text-[10px] text-muted-foreground font-mono truncate">{profile?.role || "Traffic Engineer"}</p>
+                  <p className="text-[10px] text-muted-foreground font-mono truncate">Command Operator</p>
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild className="cursor-pointer gap-2 text-xs font-heading tracking-wider">

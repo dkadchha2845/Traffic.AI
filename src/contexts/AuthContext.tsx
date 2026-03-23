@@ -14,8 +14,6 @@ interface Profile {
   user_id: string;
   display_name: string | null;
   avatar_url: string | null;
-  role: string | null;
-  department: string | null;
   access_level: number | null;
 }
 
@@ -108,8 +106,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      syncSession(session);
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+      } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+        syncSession(session);
+      } else {
+        syncSession(session);
+      }
       setLoading(false);
       clearTimeout(timeout);
     });
@@ -207,7 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: `${window.location.origin}/auth-verify`,
             data: { display_name: displayName || email },
           },
         });
@@ -252,7 +258,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error("Error during sign out:", error);
+    } finally {
+      // Always clear state manually to be safe
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+    }
   }, []);
 
   return (

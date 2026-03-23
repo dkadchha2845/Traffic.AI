@@ -30,6 +30,7 @@ import BangaloreTraffic from "./pages/BangaloreTraffic";
 import CameraFeed from "./pages/CameraFeed";
 import DigitalTwin from "./pages/DigitalTwin";
 import TrafficPrediction from "./pages/TrafficPrediction";
+import AuthVerify from "./pages/AuthVerify";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ function AnimatedRoutes() {
         <Route path="/" element={<PageTransition><Landing /></PageTransition>} />
         <Route path="/login" element={<Login />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/auth-verify" element={<AuthVerify />} />
         <Route path="/dashboard" element={<ProtectedRoute><PageTransition><Dashboard /></PageTransition></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute><PageTransition><Analytics /></PageTransition></ProtectedRoute>} />
         <Route path="/agents" element={<ProtectedRoute><PageTransition><Agents /></PageTransition></ProtectedRoute>} />

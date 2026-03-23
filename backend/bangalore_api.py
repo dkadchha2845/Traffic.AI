@@ -89,6 +89,20 @@ BANGALORE_ZONES = [
         "area": "CMH Road / HAL Airport Road",
         "peak_hours": "8–10 AM, 6–9 PM",
     },
+    {
+        "id": "vajarahalli",
+        "name": "Vajarahalli Junction",
+        "lat": 12.8701, "lon": 77.5433,
+        "area": "Kanakapura Road / Metro Corridor",
+        "peak_hours": "8–11 AM, 5–9 PM",
+    },
+    {
+        "id": "bannerghatta",
+        "name": "Bannerghatta Circle",
+        "lat": 12.8732, "lon": 77.5954,
+        "area": "Bannerghatta Road / NICE Road access",
+        "peak_hours": "7–10 AM, 5–9 PM",
+    },
 ]
 
 

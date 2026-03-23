@@ -17,6 +17,8 @@ const JUNCTIONS = [
   { id: "majestic", zoneId: "majestic", name: "Majestic", x: -4, z: 0 },
   { id: "koramangala", zoneId: "koramangala", name: "Koramangala", x: 2, z: 5 },
   { id: "indiranagar", zoneId: "indiranagar", name: "Indiranagar", x: 8, z: -1 },
+  { id: "vajarahalli", zoneId: "vajarahalli", name: "Vajarahalli", x: -2, z: 12 },
+  { id: "bannerghatta", zoneId: "bannerghatta", name: "Bannerghatta", x: 1, z: 15 },
 ];
 
 const ROADS = [
@@ -29,6 +31,8 @@ const ROADS = [
   { from: "majestic", to: "koramangala" },
   { from: "silk-board", to: "ecity" },
   { from: "kr-puram", to: "hebbal" },
+  { from: "silk-board", to: "vajarahalli" },
+  { from: "silk-board", to: "bannerghatta" },
 ];
 
 const VEHICLE_COLORS = ["#e2e8f0", "#38bdf8", "#ef4444", "#facc15"];

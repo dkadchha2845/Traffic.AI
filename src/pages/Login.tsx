@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Shield, Zap, Satellite, User, Phone, KeyRound } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Shield, Zap, Satellite, User, KeyRound } from "lucide-react";
 import { motion, useSpring } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,7 +24,7 @@ function FloatingOrb({ delay, x, y, size, color }: { delay: number; x: string; y
   );
 }
 
-type LoginMode = "password" | "email-otp" | "phone-otp";
+type LoginMode = "password" | "email-otp";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -32,7 +32,6 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [loginMode, setLoginMode] = useState<LoginMode>("password");
@@ -132,23 +131,7 @@ export default function Login() {
     // If successful, Supabase will redirect the browser
   };
 
-  const handleAppleSignIn = async () => {
-    if (submitting) return;
-    setSubmitting(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'apple',
-      options: {
-        redirectTo: `${window.location.origin}/login`
-      }
-    });
-    
-    if (error) {
-      toast.error(error.message || "Apple sign-in failed");
-      setSubmitting(false);
-      return;
-    }
-    // If successful, Supabase will redirect the browser
-  };
+  // Apple sign-in removed
 
   const handleSendEmailOtp = async () => {
     if (!email) {
@@ -165,7 +148,7 @@ export default function Login() {
         toast.error(error.message);
       } else {
         setOtpSent(true);
-        toast.success("Magic link & OTP code sent to your email!");
+        toast.success("Secure Access Code sent to your email!");
       }
     } finally {
       setSubmitting(false);
@@ -174,16 +157,27 @@ export default function Login() {
 
   const handleVerifyEmailOtp = async () => {
     if (!otp || otp.length < 6) {
-      toast.error("Please enter the 6-digit code.");
+      toast.error("Please enter the full code.");
       return;
     }
     setSubmitting(true);
     try {
-      const { error } = await supabase.auth.verifyOtp({
+      let { error } = await supabase.auth.verifyOtp({
         email,
         token: otp,
         type: "email",
       });
+      
+      // Fallback: If Supabase sent a magiclink token instead of a strict email OTP
+      if (error && error.message.toLowerCase().includes("invalid")) {
+        const fallback = await supabase.auth.verifyOtp({
+          email,
+          token: otp,
+          type: "magiclink",
+        });
+        error = fallback.error;
+      }
+
       if (error) {
         toast.error(error.message);
       }
@@ -192,44 +186,7 @@ export default function Login() {
     }
   };
 
-  const handleSendPhoneOtp = async () => {
-    if (!phone) {
-      toast.error("Please enter your phone number.");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const { error } = await supabase.auth.signInWithOtp({ phone });
-      if (error) {
-        toast.error(error.message);
-      } else {
-        setOtpSent(true);
-        toast.success("OTP sent to your phone!");
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleVerifyPhoneOtp = async () => {
-    if (!otp || otp.length < 6) {
-      toast.error("Please enter the 6-digit code.");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        phone,
-        token: otp,
-        type: "sms",
-      });
-      if (error) {
-        toast.error(error.message);
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  // Phone OTP removed
 
   const submitAuth = async () => {
     if (submitting) return;
@@ -251,6 +208,10 @@ export default function Login() {
         const { error } = await signIn(email, password);
         if (error) {
           toast.error(error.message);
+        } else {
+          // Proactive navigation if signIn call returns without error
+          // The AuthProvider syncSession will have updated the local state by now
+          navigate("/dashboard", { replace: true });
         }
       }
     } finally {
@@ -265,12 +226,6 @@ export default function Login() {
         await handleVerifyEmailOtp();
       } else {
         await handleSendEmailOtp();
-      }
-    } else if (loginMode === "phone-otp") {
-      if (otpSent) {
-        await handleVerifyPhoneOtp();
-      } else {
-        await handleSendPhoneOtp();
       }
     } else {
       await submitAuth();
@@ -348,9 +303,6 @@ export default function Login() {
               <button type="button" onClick={() => switchMode("email-otp")} className={modeTabClass("email-otp")}>
                 <Mail className="w-3 h-3 inline mr-1.5" />Email OTP
               </button>
-              <button type="button" onClick={() => switchMode("phone-otp")} className={modeTabClass("phone-otp")}>
-                <Phone className="w-3 h-3 inline mr-1.5" />Phone OTP
-              </button>
             </div>
           )}
 
@@ -415,38 +367,16 @@ export default function Login() {
                     <label className="block text-xs font-mono text-muted-foreground uppercase tracking-[0.15em] mb-2">Verification Code</label>
                     <div className="relative">
                       <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input type="text" placeholder="Enter 6-digit code" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))} required maxLength={6}
+                      <input type="text" placeholder="Enter secure code" value={otp} onChange={(e) => setOtp(e.target.value.trim().toUpperCase().slice(0, 10))} required maxLength={10}
                         className="w-full h-12 pl-10 pr-4 rounded-xl bg-secondary/50 border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-sm font-mono tracking-[0.3em] backdrop-blur-sm transition-all" />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1.5">Check your email for the code or click the magic link.</p>
+                    <p className="text-xs text-muted-foreground mt-1.5">Check your email for the Secure Access Code.</p>
                   </motion.div>
                 )}
               </>
             )}
 
-            {/* PHONE OTP MODE */}
-            {loginMode === "phone-otp" && !isSignUp && (
-              <>
-                <div>
-                  <label className="block text-xs font-mono text-muted-foreground uppercase tracking-[0.15em] mb-2">Phone Number</label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <input type="tel" placeholder="+1 234 567 8900" value={phone} onChange={(e) => setPhone(e.target.value)} required
-                      className="w-full h-12 pl-10 pr-4 rounded-xl bg-secondary/50 border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-sm backdrop-blur-sm transition-all" />
-                  </div>
-                </div>
-                {otpSent && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}>
-                    <label className="block text-xs font-mono text-muted-foreground uppercase tracking-[0.15em] mb-2">Verification Code</label>
-                    <div className="relative">
-                      <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input type="text" placeholder="Enter 6-digit code" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))} required maxLength={6}
-                        className="w-full h-12 pl-10 pr-4 rounded-xl bg-secondary/50 border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-sm font-mono tracking-[0.3em] backdrop-blur-sm transition-all" />
-                    </div>
-                  </motion.div>
-                )}
-              </>
-            )}
+            {/* PHONE OTP MODE REMOVED */}
 
             <button
               type="submit"
@@ -478,15 +408,7 @@ export default function Login() {
                 {submitting ? "CONNECTING..." : "CONTINUE WITH GOOGLE"}
               </button>
 
-              <button
-                type="button"
-                onClick={handleAppleSignIn}
-                disabled={submitting}
-                className="w-full h-12 rounded-xl bg-secondary/50 hover:bg-secondary border border-border/50 text-foreground gap-3 font-heading tracking-wider text-sm inline-flex items-center justify-center transition-all disabled:opacity-60 disabled:pointer-events-none"
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
-                {submitting ? "CONNECTING..." : "CONTINUE WITH APPLE"}
-              </button>
+              {/* Apple sign-in button removed */}
             </div>
           </form>
 

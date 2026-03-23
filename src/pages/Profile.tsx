@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { User, Mail, Building, Shield, Camera, Save, MapPin, Globe, Briefcase, Lock, KeyRound } from "lucide-react";
+import { User, Mail, Camera, Save, Lock, KeyRound } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -9,8 +9,6 @@ import { z } from "zod";
 
 const profileSchema = z.object({
   display_name: z.string().trim().min(1, "Display name is required").max(100, "Display name must be under 100 characters"),
-  department: z.string().trim().max(100, "Department must be under 100 characters"),
-  role: z.string().trim().max(100, "Role must be under 100 characters"),
 });
 
 const fadeIn = { hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
@@ -18,8 +16,6 @@ const fadeIn = { hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, tra
 export default function Profile() {
   const { user, profile, refreshProfile } = useAuth();
   const [displayName, setDisplayName] = useState(profile?.display_name || "");
-  const [department, setDepartment] = useState(profile?.department || "");
-  const [role, setRole] = useState(profile?.role || "");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
@@ -38,8 +34,6 @@ export default function Profile() {
   useEffect(() => {
     if (profile) {
       setDisplayName(profile.display_name || "");
-      setDepartment(profile.department || "");
-      setRole(profile.role || "");
       setAvatarUrl(profile.avatar_url || "");
     }
   }, [profile]);
@@ -51,7 +45,7 @@ export default function Profile() {
 
     setUploading(true);
     const fileExt = file.name.split('.').pop();
-    const filePath = `${user.id}/avatar.${fileExt}`;
+    const filePath = `${user.id}/avatar-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
     const { error: uploadError } = await supabase.storage
       .from('avatars')
@@ -64,18 +58,38 @@ export default function Profile() {
     }
 
     const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+    // Add timestamp for cache busting
+    const finalUrl = `${publicUrl}?t=${Date.now()}`;
 
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({ avatar_url: publicUrl })
+      .update({ avatar_url: finalUrl })
       .eq('user_id', user.id);
 
     if (updateError) {
       toast.error("Failed to update profile");
     } else {
-      setAvatarUrl(publicUrl);
+      setAvatarUrl(finalUrl);
       await refreshProfile();
       toast.success("Avatar updated!");
+    }
+    setUploading(false);
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!user) return;
+    setUploading(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ avatar_url: null })
+      .eq('user_id', user.id);
+
+    if (error) {
+      toast.error("Failed to remove avatar");
+    } else {
+      setAvatarUrl("");
+      await refreshProfile();
+      toast.success("Avatar removed");
     }
     setUploading(false);
   };
@@ -85,8 +99,6 @@ export default function Profile() {
 
     const result = profileSchema.safeParse({
       display_name: displayName,
-      department,
-      role,
     });
 
     if (!result.success) {
@@ -114,7 +126,10 @@ export default function Profile() {
   const handleChangeEmail = async () => {
     if (!newEmail) return toast.error("Enter a new email address");
     setChangingEmail(true);
-    const { error } = await supabase.auth.updateUser({ email: newEmail });
+    const { error } = await supabase.auth.updateUser(
+      { email: newEmail },
+      { emailRedirectTo: `${window.location.origin}/auth-verify` }
+    );
     if (error) {
       toast.error(error.message);
     } else {
@@ -147,12 +162,12 @@ export default function Profile() {
       <div className="container mx-auto max-w-4xl space-y-6 relative z-10">
         <motion.div variants={fadeIn} initial="hidden" animate="visible">
           <h1 className="text-3xl font-heading font-bold tracking-wide">OPERATOR PROFILE</h1>
-          <p className="text-muted-foreground text-sm">Manage your identity and preferences</p>
+          <p className="text-muted-foreground text-sm">Manage your identity and security settings</p>
         </motion.div>
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Avatar Card */}
-          <motion.div variants={fadeIn} initial="hidden" animate="visible" className="glass rounded-2xl p-8 text-center">
+          <motion.div variants={fadeIn} initial="hidden" animate="visible" className="glass rounded-2xl p-8 text-center h-fit">
             <div className="relative w-32 h-32 mx-auto mb-6">
               <div className="w-32 h-32 rounded-full bg-primary/10 border-2 border-primary/30 overflow-hidden flex items-center justify-center">
                 {avatarUrl ? (
@@ -171,21 +186,26 @@ export default function Profile() {
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
             </div>
             <h3 className="font-heading font-bold text-foreground tracking-wide">{displayName || "Operator"}</h3>
-            <p className="text-sm text-primary font-mono">{role || "Traffic Engineer"}</p>
-            <div className="flex items-center justify-center gap-2 mt-2 text-xs text-muted-foreground">
-              <Shield className="w-3 h-3" />
-              <span>Level {profile?.access_level || 1} Clearance</span>
-            </div>
-            {uploading && <p className="text-xs text-primary mt-4 animate-pulse font-mono">Uploading...</p>}
+            <p className="text-sm text-muted-foreground font-mono mt-1">{user?.email}</p>
+            {avatarUrl && (
+              <button
+                onClick={handleRemoveAvatar}
+                disabled={uploading}
+                className="mt-4 text-xs font-mono text-destructive hover:text-destructive/80 transition-colors uppercase tracking-wider block mx-auto py-1 px-2 rounded-lg hover:bg-destructive/5"
+              >
+                Remove Photo
+              </button>
+            )}
+            {uploading && <p className="text-xs text-primary mt-4 animate-pulse font-mono uppercase tracking-widest">Processing...</p>}
           </motion.div>
 
           {/* Profile Form */}
           <motion.div variants={fadeIn} initial="hidden" animate="visible" className="lg:col-span-2 glass rounded-2xl p-8 space-y-6">
             <h3 className="font-heading font-semibold text-foreground tracking-wide flex items-center gap-2">
-              <User className="w-5 h-5 text-primary" /> PERSONAL INFORMATION
+              <User className="w-5 h-5 text-primary" /> ACCOUNT DETAILS
             </h3>
 
-            <div className="grid sm:grid-cols-2 gap-5">
+            <div className="grid gap-5">
               <div>
                 <label className="block text-xs font-mono text-muted-foreground uppercase tracking-[0.15em] mb-2">Display Name</label>
                 <div className="relative">
@@ -195,34 +215,18 @@ export default function Profile() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-mono text-muted-foreground uppercase tracking-[0.15em] mb-2">Email</label>
+                <label className="block text-xs font-mono text-muted-foreground uppercase tracking-[0.15em] mb-2">Login Email</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input type="email" value={user?.email || ""} readOnly
                     className="w-full h-12 pl-10 pr-4 rounded-xl bg-secondary/30 border border-border/30 text-muted-foreground text-sm cursor-not-allowed" />
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-mono text-muted-foreground uppercase tracking-[0.15em] mb-2">Role</label>
-                <div className="relative">
-                  <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input type="text" value={role} onChange={(e) => setRole(e.target.value)} placeholder="Traffic Engineer"
-                    className="w-full h-12 pl-10 pr-4 rounded-xl bg-secondary/50 border border-border/50 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-mono text-muted-foreground uppercase tracking-[0.15em] mb-2">Department</label>
-                <div className="relative">
-                  <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input type="text" value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="Sector 7 HQ"
-                    className="w-full h-12 pl-10 pr-4 rounded-xl bg-secondary/50 border border-border/50 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all" />
-                </div>
-              </div>
             </div>
 
             <div className="flex justify-end pt-2">
               <Button onClick={handleSave} disabled={saving} className="bg-primary hover:bg-primary/90 text-primary-foreground glow-primary gap-2 font-heading tracking-wider text-xs h-11 px-6">
-                <Save className="w-4 h-4" /> {saving ? "SAVING..." : "SAVE PROFILE"}
+                <Save className="w-4 h-4" /> {saving ? "SAVING..." : "SAVE CHANGES"}
               </Button>
             </div>
           </motion.div>
@@ -237,8 +241,8 @@ export default function Profile() {
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Change Email */}
             <div className="space-y-4">
-              <h4 className="text-xs font-mono text-muted-foreground uppercase tracking-[0.15em]">Change Email</h4>
-              <p className="text-xs text-muted-foreground">Current: <span className="text-foreground">{user?.email}</span></p>
+              <h4 className="text-xs font-mono text-muted-foreground uppercase tracking-[0.15em]">Update Email</h4>
+              <p className="text-xs text-muted-foreground">Verification required for changes</p>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="New email address"
@@ -251,7 +255,7 @@ export default function Profile() {
 
             {/* Change Password */}
             <div className="space-y-4">
-              <h4 className="text-xs font-mono text-muted-foreground uppercase tracking-[0.15em]">Change Password</h4>
+              <h4 className="text-xs font-mono text-muted-foreground uppercase tracking-[0.15em]">Reset Password</h4>
               <div className="relative">
                 <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New password"
@@ -267,22 +271,6 @@ export default function Profile() {
               </Button>
             </div>
           </div>
-        </motion.div>
-
-        {/* Stats Row */}
-        <motion.div variants={fadeIn} initial="hidden" animate="visible" className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: "Role", value: role || "Unassigned", icon: Briefcase },
-            { label: "Access", value: `Level ${profile?.access_level || 1}`, icon: Shield },
-            { label: "Department", value: department || "Unassigned", icon: MapPin },
-            { label: "Email Status", value: user?.email_confirmed_at ? "Verified" : "Pending", icon: Globe },
-          ].map((s) => (
-            <div key={s.label} className="glass rounded-2xl p-5 text-center card-hover">
-              <s.icon className="w-6 h-6 text-primary mx-auto mb-3" />
-              <div className="text-2xl font-heading font-bold text-foreground">{s.value}</div>
-              <div className="text-xs font-mono text-muted-foreground tracking-wider mt-1">{s.label}</div>
-            </div>
-          ))}
         </motion.div>
       </div>
     </div>

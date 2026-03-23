@@ -21,6 +21,8 @@ const intersections: Record<string, { pos: [number, number], name: string, area:
   "BLR-7": { pos: [13.0354, 77.5971], name: "Hebbal Flyover", area: "North Bangalore" },
   "BLR-8": { pos: [13.0068, 77.6994], name: "KR Puram Bridge", area: "East Bangalore" },
   "BLR-9": { pos: [12.8452, 77.6602], name: "Electronic City Phase 1", area: "IT Hub South" },
+  "BLR-10": { pos: [12.8701, 77.5433], name: "Vajarahalli Junction", area: "Kanakapura Road" },
+  "BLR-11": { pos: [12.8732, 77.5954], name: "Bannerghatta Circle", area: "Arterial South" },
 };
 
 const roads = [
@@ -28,7 +30,9 @@ const roads = [
   ["BLR-4", "BLR-5"], ["BLR-5", "BLR-6"],                 
   ["BLR-5", "BLR-7"],                                 
   ["BLR-4", "BLR-8"],                                 
-  ["BLR-1", "BLR-9"]                                  
+  ["BLR-1", "BLR-9"],
+  ["BLR-1", "BLR-10"],
+  ["BLR-1", "BLR-11"]
 ];
 
 // Helper to center map on selection
@@ -255,7 +259,7 @@ export default function LiveMap() {
               
               <div className="space-y-4 relative z-10">
                 {[
-                  { icon: MapPin, label: "Network Coverage", value: "City-Wide", color: "text-success", sub: "9 Major Intersections" },
+                  { icon: MapPin, label: "Network Coverage", value: "City-Wide", color: "text-success", sub: "11 Major Intersections" },
                   { icon: Zap, label: "Stream Latency", value: networkData?.network_latency_ms ? `${Math.round(networkData.network_latency_ms)}ms` : "14ms", color: "text-cyan", sub: "Live WebSocket Tunnel" },
                   { icon: Activity, label: "System Load", value: "Optimal", color: "text-primary", sub: "Parallel TomTom Threads" },
                 ].map((s) => (
