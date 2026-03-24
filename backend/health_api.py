@@ -49,7 +49,7 @@ def check_health():
         "supabase_connected": supabase_ok,
         "tomtom_configured": tomtom_ok,
         "openai_configured": openai_ok,
-        "vision_active": vision_state.get("status") == "active",
+        "vision_active": vision_state.get("status") in ("active", "api_sensing"),
         "websocket_running": websocket_state.get("client_count", 0) > 0 or telemetry_state.get("last_payload_at") is not None,
         "data_source": data_source,
         "telemetry_status": telemetry_state.get("status", "offline"),

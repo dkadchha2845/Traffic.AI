@@ -25,7 +25,7 @@ export interface TelemetryPayload {
     telemetry_status: "live" | "stale" | "degraded" | "offline";
     data_source: string;
     data_freshness_ms: number;
-    vision_state: "active" | "degraded" | "disconnected" | "not_installed";
+    vision_state: "active" | "degraded" | "disconnected" | "not_installed" | "api_sensing";
     backend_online: boolean;
     last_updated: number;
 }
@@ -48,7 +48,7 @@ const EMPTY_TELEMETRY: TelemetryPayload = {
     telemetry_status: "offline",
     data_source: "unavailable",
     data_freshness_ms: 0,
-    vision_state: "disconnected",
+    vision_state: "api_sensing",
     backend_online: false,
     last_updated: 0,
 };

@@ -229,7 +229,7 @@ export default function Dashboard() {
                 <span className={`w-1.5 h-1.5 rounded-full ${effectiveTelemetryStatus === "live" ? "bg-success animate-pulse" : effectiveTelemetryStatus === "offline" ? "bg-destructive" : "bg-warning"}`} />
                 {connected ? `WS ${effectiveTelemetryStatus.toUpperCase()}` : restStatus ? `REST ${String(effectiveTelemetryStatus).toUpperCase()}` : "OFFLINE — NO DATA"}
               </span>
-              <span className="text-xs text-muted-foreground">Vision: {effectiveVisionState}</span>
+              <span className="text-xs text-muted-foreground">Vision: {effectiveVisionState === "active" ? "Camera Active" : effectiveVisionState === "api_sensing" ? "API Sensing" : effectiveVisionState === "disconnected" ? "No Camera" : effectiveVisionState}</span>
             </div>
           </div>
           <div className="flex items-center gap-3">

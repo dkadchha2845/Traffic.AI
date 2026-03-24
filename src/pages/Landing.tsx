@@ -1,12 +1,11 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Brain, Zap, BarChart3, Shield, Check, Activity, Rocket, Globe, Satellite, ChevronDown, Quote, Star } from "lucide-react";
+import { ArrowRight, Brain, Zap, BarChart3, Shield, Activity, Rocket, Globe, Satellite, ChevronDown, Map, ActivitySquare, PlayCircle, Eye } from "lucide-react";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import { useRef, Suspense, lazy, useEffect, useState } from "react";
 import { useSystemDependencies, useSystemNetwork } from "@/hooks/useSystemStatus";
 
 const Starfield = lazy(() => import("@/components/Starfield"));
-const Globe3D = lazy(() => import("@/components/Globe3D"));
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
@@ -25,10 +24,11 @@ const features = [
   { icon: Shield, title: "Emergency Override", desc: "Instant green-wave corridors for emergency vehicles with AI-coordinated rerouting of all surrounding traffic.", gradient: "from-success to-cyan" },
 ];
 
-const plans = [
-  { name: "Colony", price: "$499", features: ["5 Smart Intersections", "Basic Traffic Analytics", "Email Support"], cta: "Get Started", popular: false },
-  { name: "Metropolis", price: "$1,499", features: ["50 Smart Intersections", "Predictive AI Models", "Priority 24/7 Support", "Full API Access"], cta: "Deploy Now", popular: true },
-  { name: "Orbital", price: "$4,999", features: ["Unlimited Intersections", "Custom AI Training", "Dedicated Engineer", "White-label Solution"], cta: "Contact Sales", popular: false },
+const platformFeatures = [
+  { icon: Activity, title: "Command Dashboard", desc: "Centralized live view of Bangalore's traffic health, system status, and recent automated interventions.", color: "text-primary", bg: "bg-primary/10" },
+  { icon: Map, title: "Live Network Map", desc: "Interactive geographic visualization of every monitored intersection, congestion level, and active emergency route.", color: "text-cyan", bg: "bg-cyan/10" },
+  { icon: Eye, title: "Digital Twin & Camera Feed", desc: "3D representation of traffic lights combined with real-time video feeds from intersection cameras.", color: "text-nebula", bg: "bg-nebula/10" },
+  { icon: BarChart3, title: "Predictive Analytics", desc: "AI-driven forecasting models predicting future traffic volumes up to 24 hours in advance.", color: "text-accent", bg: "bg-accent/10" }
 ];
 
 const techFeatures = [
@@ -105,6 +105,8 @@ export default function Landing() {
   const { data: dependencies } = useSystemDependencies();
   const heroRef = useRef<HTMLDivElement>(null);
   const featuresRef = useRef<HTMLDivElement>(null);
+  const bangaloreRef = useRef<HTMLDivElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
   const heroY = useTransform(scrollYProgress, [0, 1], [0, 200]);
   const heroOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
@@ -153,7 +155,6 @@ export default function Landing() {
           <Starfield className="opacity-40" />
         </Suspense>
 
-        {/* Grid overlay */}
         <div className="absolute inset-0 opacity-[0.03]" style={{
           backgroundImage: "linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)",
           backgroundSize: "60px 60px"
@@ -171,39 +172,39 @@ export default function Landing() {
             </motion.div>
 
             <motion.h1 initial="hidden" animate="visible" variants={fadeUp} custom={1}
-              className="text-6xl md:text-8xl lg:text-9xl font-heading font-bold leading-[0.85] mb-8 tracking-tight">
+              className="text-5xl md:text-7xl lg:text-8xl font-heading font-bold leading-[0.9] mb-8 tracking-tight uppercase">
               <motion.span className="block" style={{ y: springY }}>
-                <Typewriter text="TRAFFIC" delay={800} />
+                <Typewriter text="AI-POWERED SMART" delay={800} />
               </motion.span>
               <motion.span 
-                className="block text-gradient"
+                className="block text-gradient mt-2"
                 animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
                 transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
                 style={{ backgroundSize: "200% auto" }}
               >
-                <Typewriter text="REIMAGINED" delay={1500} />
+                <Typewriter text="TRAFFIC MANAGEMENT" delay={2000} />
               </motion.span>
             </motion.h1>
 
             <motion.p initial="hidden" animate="visible" variants={fadeUp} custom={2}
-              className="text-lg md:text-xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed font-body">
-              Orchestrate city movement with autonomous agentic AI and live operational telemetry from the roadway network.
+              className="text-lg md:text-xl text-muted-foreground mb-12 max-w-3xl mx-auto leading-relaxed font-body">
+              Nexus Grid Logic provides a next-generation real-time traffic monitoring, predictive analysis, and intelligent signal routing platform designed exclusively for Bangalore.
             </motion.p>
 
             <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={3} className="flex flex-wrap justify-center gap-4 mb-20">
-              <Link to="/dashboard">
+              <Link to="/login">
                 <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground glow-primary gap-2 h-14 px-10 text-base font-heading tracking-wider group">
-                  LAUNCH COMMAND 
+                  LAUNCH PLATFORM
                   <motion.span animate={{ x: [0, 4, 0] }} transition={{ repeat: Infinity, duration: 1.5 }}>
                     <ArrowRight className="w-5 h-5" />
                   </motion.span>
                 </Button>
               </Link>
-              <Link to="/analytics">
+              <a href="#preview">
                 <Button size="lg" variant="outline" className="border-border/50 text-foreground hover:bg-secondary/50 h-14 px-10 text-base backdrop-blur-sm font-heading tracking-wider">
-                  SYSTEM OVERVIEW
+                  EXPLORE FEATURES
                 </Button>
-              </Link>
+              </a>
             </motion.div>
 
             <motion.div initial="hidden" animate="visible" variants={staggerContainer} className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
@@ -222,13 +223,12 @@ export default function Landing() {
           </div>
         </motion.div>
 
-        {/* Scroll indicator */}
         <motion.div
           animate={{ y: [0, 12, 0] }}
           transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
           className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 text-muted-foreground"
         >
-          <span className="text-[10px] font-mono tracking-[0.3em] uppercase">Explore</span>
+          <span className="text-[10px] font-mono tracking-[0.3em] uppercase">Scroll</span>
           <ChevronDown className="w-5 h-5 text-primary" />
         </motion.div>
       </section>
@@ -260,53 +260,120 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Interactive 3D Globe */}
-      <section className="py-24 relative overflow-hidden">
+      {/* Bangalore Intelligence Section */}
+      <section ref={bangaloreRef} id="bangalore" className="py-32 relative overflow-hidden">
         <div className="absolute inset-0 gradient-mesh opacity-20" />
+        <FloatingOrb delay={1} x="60%" y="20%" size="450px" color="bg-cyan/10" />
+        
         <div className="container mx-auto px-4 relative z-10">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-16">
-            <span className="text-xs font-mono text-primary tracking-[0.3em] uppercase mb-4 block">Global Network</span>
-            <h2 className="text-4xl md:text-6xl font-heading font-bold mb-5 tracking-tight">PLANETARY COVERAGE</h2>
-            <p className="text-muted-foreground max-w-lg mx-auto text-lg">Real-time traffic intelligence visualized from the currently connected live network.</p>
+            <span className="text-xs font-mono text-cyan tracking-[0.3em] uppercase mb-4 block">Hyper-Local Context</span>
+            <h2 className="text-4xl md:text-6xl font-heading font-bold mb-5 tracking-tight uppercase">BANGALORE TRAFFIC Intelligence</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">Custom-tuned to handle the unique mobility challenges of Bangalore. From Silk Board congestion to Outer Ring Road snarls, the AI continuously ingests city-wide telemetry to orchestrate movement.</p>
           </motion.div>
+          
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            whileInView={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 1, ease: "easeOut" }}
-            className="h-[380px] md:h-[450px] max-w-3xl mx-auto"
+            className="max-w-4xl mx-auto glass rounded-3xl p-8 relative holographic-border"
           >
-            <Suspense fallback={
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="w-16 h-16 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              <div className="space-y-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-cyan/20 border border-cyan/30 flex items-center justify-center">
+                    <Map className="w-6 h-6 text-cyan" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-xl text-foreground">City Grid Integration</h3>
+                    <p className="text-sm text-muted-foreground">Mapping & monitoring major arteries</p>
+                  </div>
+                </div>
+                <p className="text-muted-foreground leading-relaxed">
+                  Our system is deployed specifically for Bangalore's topology, integrating data from pivotal junctions including: 
+                  <span className="text-foreground font-semibold"> Silk Board Junction, KR Puram, Electronic City, and the Outer Ring Road</span>.
+                </p>
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border/30">
+                  <div>
+                    <div className="text-2xl font-bold font-heading text-foreground block">3.2M+</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider">Vehicles Tracked</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold font-heading text-success block">-24%</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider">Avg Wait Time</div>
+                  </div>
+                </div>
               </div>
-            }>
-              <Globe3D />
-            </Suspense>
+              <div className="relative h-64 md:h-full min-h-[300px] rounded-2xl overflow-hidden border border-border/50 bg-black/40 flex flex-col items-center justify-center p-6 text-center">
+                <ActivitySquare className="w-16 h-16 text-cyan mb-4 animate-pulse opacity-80" />
+                <h4 className="font-heading font-bold text-lg text-foreground mb-2">Live Topography Mapping</h4>
+                <p className="text-sm text-muted-foreground">The platform visualizes the Bangalore grid dynamically, applying generative insights to real-world traffic intersections.</p>
+                <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+                <div className="absolute bottom-4 left-4 right-4 h-1 bg-secondary rounded-full overflow-hidden">
+                  <motion.div 
+                    className="h-full bg-cyan shadow-[0_0_10px_rgba(0,255,255,0.8)]"
+                    animate={{ width: ["10%", "90%", "10%"] }}
+                    transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                </div>
+              </div>
+            </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Features with staggered parallax */}
+      {/* Platform Features Preview */}
+      <section ref={previewRef} id="preview" className="py-32 relative overflow-hidden bg-secondary/5">
+        <div className="absolute inset-0 starfield opacity-15" />
+        <FloatingOrb delay={2} x="10%" y="10%" size="600px" color="bg-primary/5" />
+        
+        <div className="container mx-auto px-4 relative z-10">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-24">
+            <motion.span className="inline-block text-xs font-mono text-primary tracking-[0.3em] uppercase mb-4">Platform Capabilities</motion.span>
+            <h2 className="text-4xl md:text-6xl font-heading font-bold mb-5 tracking-tight uppercase">WHAT'S INSIDE</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">Log in to unlock a comprehensive suite of AI management tools engineered exclusively for urban mobility coordinators.</p>
+          </motion.div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+            {platformFeatures.map((f, i) => (
+              <motion.div key={f.title} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} variants={fadeUp} custom={i}
+                className="glass rounded-3xl p-8 card-hover flex flex-col h-full relative group overflow-hidden border border-border/40 hover:border-primary/30 transition-all duration-300"
+              >
+                <div className={`w-14 h-14 rounded-2xl ${f.bg} border border-[currentcolor]/20 flex items-center justify-center mb-6 ${f.color} group-hover:scale-110 transition-transform duration-300`}>
+                  <f.icon className="w-7 h-7" />
+                </div>
+                <h3 className="font-heading font-bold text-foreground text-xl mb-3 tracking-wide">{f.title}</h3>
+                <p className="text-muted-foreground leading-relaxed text-sm flex-grow">{f.desc}</p>
+                <div className="mt-8 flex items-center gap-2 text-xs font-heading tracking-widest text-[#888] group-hover:text-foreground transition-colors uppercase">
+                  Explore <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </motion.div>
+            ))}
+          </div>
+          
+          <div className="mt-16 text-center">
+            <Link to="/login">
+              <Button size="lg" className="bg-transparent border border-primary text-primary hover:bg-primary/10 transition-all duration-300 glow-primary h-14 px-10 text-sm font-heading tracking-widest uppercase">
+                Access Platform <PlayCircle className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Outline */}
       <section ref={featuresRef} id="features" className="py-32 relative overflow-hidden">
         <div className="absolute inset-0 starfield opacity-15" />
-        <FloatingOrb delay={1} x="5%" y="50%" size="300px" color="bg-nebula/10" />
         <FloatingOrb delay={3} x="80%" y="20%" size="250px" color="bg-cyan/10" />
         
         <div className="container mx-auto px-4 relative z-10">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-24">
-            <motion.span 
-              className="inline-block text-xs font-mono text-primary tracking-[0.3em] uppercase mb-4"
-              initial={{ opacity: 0, letterSpacing: "0.1em" }}
-              whileInView={{ opacity: 1, letterSpacing: "0.3em" }}
-              viewport={{ once: true }}
-              transition={{ duration: 1 }}
-            >
-              What We Offer
-            </motion.span>
-            <h2 className="text-4xl md:text-6xl font-heading font-bold mb-5 tracking-tight">NEURAL CAPABILITIES</h2>
+            <motion.span className="inline-block text-xs font-mono text-primary tracking-[0.3em] uppercase mb-4">Core Technology</motion.span>
+            <h2 className="text-4xl md:text-6xl font-heading font-bold mb-5 tracking-tight uppercase">NEURAL CAPABILITIES</h2>
             <p className="text-muted-foreground max-w-lg mx-auto text-lg">Core control, prediction, sensing, and emergency-response capabilities operating from live data.</p>
           </motion.div>
+          
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {features.map((f, i) => (
               <motion.div key={f.title} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }} variants={fadeUp} custom={i}
@@ -327,7 +394,7 @@ export default function Landing() {
                 >
                   <f.icon className="w-8 h-8 text-primary" />
                 </motion.div>
-                <h3 className="font-heading font-bold text-foreground text-xl mb-4 tracking-wide">{f.title}</h3>
+                <h3 className="font-heading font-bold text-foreground text-xl mb-4 tracking-wide uppercase">{f.title}</h3>
                 <p className="text-muted-foreground leading-relaxed text-base">{f.desc}</p>
               </motion.div>
             ))}
@@ -335,123 +402,23 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="py-32 relative overflow-hidden">
-        <div className="absolute inset-0 gradient-mesh opacity-40" />
-        <FloatingOrb delay={2} x="20%" y="70%" size="350px" color="bg-primary/10" />
-        
-        <div className="container mx-auto px-4 relative z-10">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-24">
-            <span className="text-xs font-mono text-primary tracking-[0.3em] uppercase mb-4 block">Pricing</span>
-            <h2 className="text-4xl md:text-6xl font-heading font-bold mb-5 tracking-tight">DEPLOYMENT TIERS</h2>
-            <p className="text-muted-foreground text-lg">Scale from a single district to a full planetary infrastructure.</p>
-          </motion.div>
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {plans.map((plan, i) => (
-              <motion.div key={plan.name} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i}
-                className={`glass rounded-3xl p-10 card-hover relative ${plan.popular ? "holographic-border glow-primary" : ""}`}
-                whileHover={{ y: -10, scale: 1.02 }}
-              >
-                {plan.popular && (
-                  <motion.span 
-                    className="absolute -top-4 left-1/2 -translate-x-1/2 px-5 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-heading font-bold tracking-wider"
-                    animate={{ scale: [1, 1.05, 1] }}
-                    transition={{ repeat: Infinity, duration: 2 }}
-                  >
-                    RECOMMENDED
-                  </motion.span>
-                )}
-                <h3 className="font-heading font-bold text-foreground text-lg mb-3 tracking-wider">{plan.name}</h3>
-                <div className="mb-10">
-                  <span className="text-5xl font-heading font-bold text-foreground">{plan.price}</span>
-                  <span className="text-muted-foreground text-sm">/mo</span>
-                </div>
-                <ul className="space-y-4 mb-12">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-center gap-3 text-sm text-muted-foreground">
-                      <Check className="w-4 h-4 text-success shrink-0" /> {f}
-                    </li>
-                  ))}
-                </ul>
-                <Button className={`w-full h-12 font-heading tracking-wider ${plan.popular ? "bg-primary text-primary-foreground hover:bg-primary/90 glow-primary" : "bg-secondary text-foreground hover:bg-secondary/80"}`}>
-                  {plan.cta}
-                </Button>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="py-32 relative overflow-hidden">
-        <div className="absolute inset-0 starfield opacity-10" />
-        <FloatingOrb delay={1} x="75%" y="40%" size="300px" color="bg-cyan/10" />
-        
-        <div className="container mx-auto px-4 relative z-10">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-24">
-            <span className="text-xs font-mono text-primary tracking-[0.3em] uppercase mb-4 block">Social Proof</span>
-            <h2 className="text-4xl md:text-6xl font-heading font-bold mb-5 tracking-tight">TRUSTED WORLDWIDE</h2>
-            <p className="text-muted-foreground text-lg max-w-lg mx-auto">Traffic engineers and city planners use the platform to monitor live roadway conditions and coordinate operations.</p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {[
-              { name: "Dr. Sarah Chen", role: "Chief Traffic Engineer, Singapore", quote: "The live corridor visibility and operator tooling made incident response much easier to coordinate.", avatar: "SC", stars: 5 },
-              { name: "Marcus Hoffmann", role: "Smart City Director, Berlin", quote: "The prediction surface is useful because it stays tied to current roadway conditions instead of canned demos.", avatar: "MH", stars: 5 },
-              { name: "Aisha Patel", role: "Urban Mobility Lead, Mumbai", quote: "The emergency workflow gave operators a clearer view of corridor conditions and signal overrides in real time.", avatar: "AP", stars: 5 },
-            ].map((t, i) => (
-              <motion.div
-                key={t.name}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                variants={fadeUp}
-                custom={i}
-                className="glass rounded-3xl p-8 card-hover relative group"
-                whileHover={{ y: -8 }}
-              >
-                <Quote className="w-8 h-8 text-primary/20 mb-4" />
-                <p className="text-muted-foreground leading-relaxed mb-8 text-sm">&ldquo;{t.quote}&rdquo;</p>
-                <div className="flex items-center gap-1 mb-6">
-                  {Array.from({ length: t.stars }).map((_, si) => (
-                    <Star key={si} className="w-4 h-4 fill-primary text-primary" />
-                  ))}
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-sm font-heading font-bold text-primary">
-                    {t.avatar}
-                  </div>
-                  <div>
-                    <div className="font-heading font-semibold text-foreground text-sm tracking-wide">{t.name}</div>
-                    <div className="text-xs text-muted-foreground">{t.role}</div>
-                  </div>
-                </div>
-                <motion.div
-                  className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-cyan opacity-0 group-hover:opacity-60 transition-opacity duration-500 rounded-t-3xl"
-                />
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* CTA */}
-      <section className="py-32 relative overflow-hidden">
+      <section className="py-32 relative overflow-hidden border-t border-border/20">
         <div className="absolute inset-0 starfield opacity-30" />
         <FloatingOrb delay={0} x="40%" y="30%" size="500px" color="bg-primary/15" />
         
         <div className="container mx-auto px-4 relative z-10 text-center">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-            <h2 className="text-5xl md:text-7xl font-heading font-bold mb-8 tracking-tight">
-              READY TO <span className="text-gradient">LAUNCH?</span>
+            <h2 className="text-5xl md:text-7xl font-heading font-bold mb-8 tracking-tight uppercase">
+              READY TO <span className="text-gradient">TAKE CONTROL?</span>
             </h2>
             <p className="text-xl text-muted-foreground mb-12 max-w-xl mx-auto">
-              Join the next generation of smart city infrastructure. Deploy in minutes, not months.
+              Step into the command center and revolutionize how city intersections operate.
             </p>
             <Link to="/login">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.98 }}>
                 <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground glow-primary gap-3 h-16 px-12 text-lg font-heading tracking-wider">
-                  <Rocket className="w-6 h-6" /> GET STARTED FREE
+                  <Rocket className="w-6 h-6" /> ACCESS COMMAND SYSTEM
                 </Button>
               </motion.div>
             </Link>
@@ -467,14 +434,14 @@ export default function Landing() {
             <div className="w-9 h-9 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center">
               <Activity className="w-4 h-4 text-primary" />
             </div>
-            <span className="font-logo font-bold text-foreground tracking-wider text-lg">TRAFFICAI</span>
+            <span className="font-logo font-bold text-foreground tracking-wider text-lg">NEXUS GRID LOGIC</span>
           </div>
           <div className="flex gap-8">
-            <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
-            <a href="#" className="hover:text-foreground transition-colors">Terms</a>
-            <a href="#" className="hover:text-foreground transition-colors">Documentation</a>
+            <a href="#" className="hover:text-foreground transition-colors uppercase font-heading text-xs tracking-wider">Privacy</a>
+            <a href="#" className="hover:text-foreground transition-colors uppercase font-heading text-xs tracking-wider">Terms</a>
+            <a href="#" className="hover:text-foreground transition-colors uppercase font-heading text-xs tracking-wider">Documentation</a>
           </div>
-          <p className="font-mono text-xs">© 2026 TrafficAI Systems</p>
+          <p className="font-mono text-xs">© 2026 Nexus Grid Logic</p>
         </div>
       </footer>
     </div>

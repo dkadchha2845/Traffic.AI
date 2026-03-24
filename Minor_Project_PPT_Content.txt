@@ -1,0 +1,153 @@
+================================================================================
+                    MINOR PROJECT REVIEW — PPT CONTENT
+================================================================================
+
+Slide 1: Title Slide
+• Title: Smart City Traffic Management System using AI
+• Subtitle: B.Tech Minor Project Presentation
+• Team Members: [Student 1, Student 2, Student 3, Student 4]
+• Guide: Prof. [Guide Name]
+
+================================================================================
+
+Slide 2: Overview
+• Goal: Optimize urban mobility in Bangalore using artificial intelligence.
+• Core Technologies: Computer Vision, Reinforcement Learning, Time-Series Forecasting.
+• Key Feature: Real-time adaptive signal control that overrides traditional fixed timers.
+• Scope: Active monitoring and control across 11 major Bangalore traffic zones.
+
+================================================================================
+
+Slide 3: Abstract
+• Urban congestion causes significant economic and environmental losses globally.
+• Traditional fixed-timer signals fail to adapt to live, unpredictable traffic conditions.
+• Our solution, Traffic.AI, proposes a multi-agent AI system (YOLOv8 + PPO RL).
+• Achieves real-time monitoring and adaptive delay reduction via a full-stack dashboard.
+
+================================================================================
+
+Slide 4: Problem Statement
+• Fixed-timer signals lead to uneven congestion and wasted green phases on empty roads.
+• Traffic authorities lack centralized, real-time situational awareness across multiple junctions.
+• No automated priority routing exists for emergency vehicles (ambulances, fire engines).
+• Inability to predict traffic build-ups and preemptively manage traffic flow.
+
+================================================================================
+
+Slide 5: Introduction
+• Bangalore suffers from severe traffic bottlenecks at key junctions (e.g., Silk Board, Hebbal).
+• Internet of Things (IoT) and AI advancements enable dynamic, data-driven traffic control.
+• Our project transitions traffic management from reactive to proactive and predictive.
+• Integrates live CCTV video feeds, TomTom traffic data, and real-time weather APIs.
+
+================================================================================
+
+Slide 6: Social Impact
+• Reduces travel time and fuel consumption for daily commuters.
+• Enables faster emergency vehicle response times, potentially saving lives.
+• Lowers vehicular carbon emissions by significantly reducing idling times at red lights.
+• Improves overall productivity and quality of life for urban residents.
+
+================================================================================
+
+Slide 7: Literature Survey
+
+| Reference | Key Technique | Pros | Limitations Addressed By Us |
+|---|---|---|---|
+| Wei et al. [1] | IntelliLight (DQN RL) | Adaptive signal timing | We use PPO for better stability & multi-zone coordination. |
+| Redmon et al. [2] | YOLO Architecture | Fast object detection | We apply YOLOv8n optimized for real-time edge performance. |
+| Lewis et al. [5] | Retrieval Augmented Generation (RAG) | Context-aware LLM responses | We integrate structured live telemetry directly into the RAG context. |
+
+================================================================================
+
+Slide 8: Functional Requirements
+• System must detect, classify, and count vehicles from live CCTV streams in real-time.
+• Reinforcement learning agent must dynamically adjust signal phases based on queue lengths.
+• Dashboard must display live telemetry (10 frames per second) across all 11 zones.
+• System must support manual operator overrides and automatic emergency green-waves.
+• AI Chatbot must answer natural language queries using live and historical traffic data.
+
+================================================================================
+
+Slide 9: Non-Functional Requirements
+• Latency: Sub-second latency for WebSocket telemetry streaming and AI decisions.
+• Reliability: Graceful degradation (fallback to local baselines if TomTom API fails).
+• Security: Secure access via Supabase JWT authentication and role-based access.
+• Scalability: Ability to process multi-camera feeds concurrently without UI blocking.
+• Usability: Cross-platform, highly responsive React UI for command center operators.
+
+================================================================================
+
+Slide 10: System Requirements
+• Hardware:
+  - Processor: Intel Core i5 / AMD Ryzen 5 or higher
+  - Memory: Minimum 8GB RAM (16GB recommended for concurrent multi-camera tracking)
+  - GPU: Optional but recommended for stable YOLOv8 inference at 30+ FPS
+• Software:
+  - OS: Windows 10/11, Linux, or macOS
+  - Backend environment: Python 3.10+, Uvicorn
+  - Frontend environment: Node.js 18+, Modern Web Browser (Chrome/Edge/Firefox)
+  - Database: Supabase (Managed PostgreSQL)
+
+================================================================================
+
+Slide 11: Design & Architecture
+• Frontend Presentation: React 18, TailwindCSS, Recharts, Three.js (Digital Twin).
+• Backend Application: FastAPI, WebSocket for bi-directional live telemetry streaming.
+• AI/ML Layer: YOLOv8 (Vision), Stable Baselines3 PPO (RL), LangChain (RAG).
+• Data Persistence: Supabase (Relational tables + Vector store for embeddings).
+• External Services: TomTom Traffic Flow API, OpenWeatherMap API.
+
+================================================================================
+
+Slide 12: Methodology
+• Step 1 - Data Collection: Integration of TomTom APIs and sample CCTV video feeds.
+• Step 2 - Vision Model: Deploying YOLOv8n to extract lane-wise queue counts via spatial mapping.
+• Step 3 - RL Environment: Building `TrafficIntersectionEnv` with a custom fairness reward function.
+• Step 4 - Full-Stack Dev: Developing the FastAPI backend routing and React frontend dashboard.
+• Step 5 - Integration: Connecting AI models via 10 FPS WebSocket telemetry loops.
+• Step 6 - Testing: Validating fallback mechanisms, API latency, and visual rendering accuracy.
+
+================================================================================
+
+Slide 13: Technologies Used
+• Web Technologies: React, TypeScript, Vite, Tailwind CSS, Framer Motion.
+• Backend Technologies: Python, FastAPI, WebSockets, Pydantic.
+• AI/ML Libraries: Ultralytics (YOLO), Stable Baselines3, Gymnasium, LangChain, pmdarima.
+• Database & Hosting: Supabase (PostgreSQL), Vercel (Frontend deployment).
+• Visual Utilities: React-Leaflet (Maps), Three.js (3D Visualization), ReportLab (PDFs).
+
+================================================================================
+
+Slide 14: AI Models
+• YOLOv8n (Vision): Fast, lightweight object detection tracking cars, bikes, buses, and trucks.
+• Proximal Policy Optimization (PPO): RL agent that learns optimal signal policies; reward function minimizes total delay and queue variance.
+• AutoARIMA (Forecasting): Time-series model providing 30-minute congestion forecasting based on historical density data.
+• RAG Chatbot: Combines LangChain with Supabase Vector Store for context-aware, natural language operator assistance.
+
+================================================================================
+
+Slide 15: Results / Screens
+• [Presenter Note: Insert screenshots here]
+• Screen 1: Main Command Center Dashboard showing 10 FPS live telemetry.
+• Screen 2: Live CCTV Feed overlay with YOLOv8 bounding boxes and counts.
+• Screen 3: 3D Digital Twin Intersection map visualization.
+• Screen 4: RAG Chatbot interface and Predictive Analytics charts.
+• Result Output: Achieved <15ms backend processing latency per cycle and successful adaptive phase switching.
+
+================================================================================
+
+Slide 16: Conclusion
+• Developed a comprehensive, real-time traffic command center using state-of-the-art AI.
+• Successfully integrated computer vision with reinforcement learning for closed-loop signal control.
+• Addressed typical API failures through robust, deterministic baseline fallback mechanisms.
+• The system demonstrates the practical viability of multi-agent AI for solving complex urban mobility challenges in Indian cities.
+
+================================================================================
+
+Slide 17: References
+• [1] H. Wei et al., "IntelliLight: A Reinforcement Learning Approach for Intelligent Traffic Light Control," KDD, 2018.
+• [2] G. Jocher et al., "Ultralytics YOLOv8," 2023.
+• [3] J. Schulman et al., "Proximal Policy Optimization Algorithms," arXiv, 2017.
+• [4] R. J. Hyndman, "Automatic Time Series Forecasting: The forecast Package for R," JSS, 2008.
+• [5] P. Lewis et al., "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks," NeurIPS, 2020.

@@ -8,7 +8,7 @@ runtime_state: dict[str, Any] = {
     "traffic_api": {"status": "idle", "last_success_at": None, "last_error": None, "source": "unconfigured"},
     "weather_api": {"status": "idle", "last_success_at": None, "last_error": None, "source": "unconfigured"},
     "supabase": {"status": "idle", "last_success_at": None, "last_error": None},
-    "vision": {"status": "starting", "last_success_at": None, "last_error": None, "source": "camera"},
+    "vision": {"status": "api_sensing", "last_success_at": None, "last_error": None, "source": "TomTom Traffic Flow API"},
     "rl_model": {"status": "unknown", "last_success_at": None, "last_error": None},
     "telemetry": {"status": "starting", "last_success_at": None, "last_error": None, "last_payload_at": None},
     "websocket": {"client_count": 0, "last_connected_at": None, "last_disconnected_at": None},

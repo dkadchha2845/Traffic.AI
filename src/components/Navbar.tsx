@@ -54,7 +54,8 @@ export default function Navbar() {
           {isLanding || isLogin ? (
             <>
               <a href="/#features" className="px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors font-heading tracking-wider">FEATURES</a>
-              <a href="/#pricing" className="px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors font-heading tracking-wider">PRICING</a>
+              <a href="/#bangalore" className="px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors font-heading tracking-wider">BANGALORE INTEL</a>
+              <a href="/#preview" className="px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors font-heading tracking-wider">PLATFORM PREVIEW</a>
             </>
           ) : (
             navLinks.map((link) => (

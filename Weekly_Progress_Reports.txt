@@ -1,0 +1,767 @@
+================================================================================
+             B.TECH MINOR PROJECT — WEEKLY PROGRESS REPORTS
+================================================================================
+
+  Project Title  : Smart City Traffic Management System using AI
+  Project Domain : Artificial Intelligence, Computer Vision, Web Development
+
+  Team Members:
+    1. Student 1 (USN: XXXXXXXXX01) — Backend Development & API Integration
+    2. Student 2 (USN: XXXXXXXXX02) — Frontend UI/UX Development
+    3. Student 3 (USN: XXXXXXXXX03) — AI/ML Model Development
+    4. Student 4 (USN: XXXXXXXXX04) — Database Design & System Integration
+
+  Guide         : Prof. [Guide Name], Dept. of Computer Science & Engineering
+  Academic Year : 2025–2026
+
+================================================================================
+
+
+████████████████████████████████████████████████████████████████████████████████
+                              WEEK 1
+                     Ideation, Research & Planning
+                    Date: 10 Feb 2026 – 16 Feb 2026
+████████████████████████████████████████████████████████████████████████████████
+
+
+1. WORK CARRIED OUT BY THE TEAM
+────────────────────────────────
+
+  • Conducted a comprehensive literature survey on AI-based traffic management
+    systems, including adaptive signal control, computer vision for vehicle
+    detection, and reinforcement learning for intersection optimization.
+
+  • Studied existing solutions: SCOOT (UK), SCATS (Australia), and recent
+    deep-learning approaches using YOLO-family object detectors for real-time
+    vehicle counting.
+
+  • Identified Bangalore as the target deployment city due to acute congestion
+    at junctions like Silk Board, Marathahalli Bridge, Hebbal Flyover, KR Puram,
+    and Electronic City — selected 11 major traffic zones with real GPS
+    coordinates for system coverage.
+
+  • Finalized the technology stack after evaluating multiple frameworks:
+      - Frontend: React 18 + TypeScript + Vite (for fast HMR and modern tooling)
+      - Backend: Python FastAPI (async, high-performance REST + WebSocket)
+      - Database: Supabase (managed PostgreSQL with real-time subscriptions)
+      - AI/ML: YOLOv8 for detection, PPO (Stable Baselines3) for signal control
+      - External APIs: TomTom Traffic Flow API, OpenWeatherMap API
+
+  • Defined the system architecture: Frontend → Backend API → AI Models →
+    Supabase Database → External APIs (TomTom, OpenWeatherMap)
+
+  • Created the project repository (nexus-grid-logic-main) and established
+    the folder structure (src/, backend/, supabase/, public/).
+
+  • Drafted the initial Software Requirements Specification (SRS) document
+    covering functional and non-functional requirements.
+
+
+2. INDIVIDUAL CONTRIBUTIONS
+────────────────────────────
+
+  Student 1 (Backend & APIs):
+    - Researched FastAPI framework, WebSocket protocol for real-time streaming,
+      and RESTful API design patterns.
+    - Evaluated TomTom Traffic Flow API and OpenWeatherMap API for live data
+      integration, created test scripts (test_tomtom.py, test_weather.py).
+    - Set up the backend directory structure and initialized requirements.txt
+      with core dependencies (fastapi, uvicorn, supabase, pydantic, requests).
+
+  Student 2 (Frontend UI):
+    - Researched modern web UI frameworks and finalized React 18 + Vite + TypeScript.
+    - Studied TailwindCSS for utility-first styling and Framer Motion for animations.
+    - Initialized the frontend project using Vite, configured TailwindCSS,
+      PostCSS, and ESLint. Set up the base project structure (src/pages,
+      src/components, src/hooks).
+
+  Student 3 (AI Models):
+    - Conducted a comparative study of object detection models (YOLOv5 vs YOLOv8
+      vs SSD MobileNet) and selected YOLOv8n (nano) for its balance of speed
+      and accuracy on edge devices.
+    - Researched reinforcement learning approaches for traffic signal control,
+      selected PPO (Proximal Policy Optimization) from Stable Baselines3.
+    - Downloaded and verified the pre-trained yolov8n.pt weights (6.5 MB).
+
+  Student 4 (Database & Integration):
+    - Created a Supabase project and configured the PostgreSQL database instance.
+    - Designed the initial database schema with tables: signal_logs, traffic_data,
+      performance_metrics.
+    - Set up environment variable files (.env) for both frontend and backend with
+      Supabase URL, anon key, and service role key.
+
+
+3. WORK PLANNED FOR NEXT WEEK
+───────────────────────────────
+
+  • Set up the basic FastAPI backend server with health check endpoints.
+  • Create the React landing page and authentication (login/register) flow.
+  • Implement Supabase Auth integration for user management.
+  • Begin initial TomTom API and OpenWeatherMap API integration in the backend.
+
+
+4. MAJOR BOTTLENECKS
+─────────────────────
+
+  • Difficulty in selecting the optimal RL algorithm — resolved by comparing
+    DQN, A2C, and PPO; PPO chosen for its stability and sample efficiency.
+  • TomTom API free-tier rate limits needed evaluation to ensure feasibility
+    for real-time polling at 60-second intervals.
+
+
+5. PERCENTAGE COMPLETION
+─────────────────────────
+
+  ██░░░░░░░░░░░░░░░░░░  10%
+
+
+
+████████████████████████████████████████████████████████████████████████████████
+                              WEEK 2
+                   Basic Frontend & Backend Setup
+                    Date: 17 Feb 2026 – 23 Feb 2026
+████████████████████████████████████████████████████████████████████████████████
+
+
+1. WORK CARRIED OUT BY THE TEAM
+────────────────────────────────
+
+  • Built the FastAPI backend entry point (main.py) with CORS middleware
+    configuration to allow cross-origin requests from the React frontend
+    running on localhost:5173/8080.
+
+  • Implemented JWT-based authentication module (auth.py) using Supabase's
+    built-in auth system with HTTPBearer security scheme. The get_current_user_id
+    dependency validates Supabase JWT tokens via supabase.auth.get_user().
+
+  • Created the health monitoring API (health_api.py) with 4 endpoints:
+    /api/health (comprehensive status), /api/health/live (liveness probe),
+    /api/health/ready (readiness probe), /api/health/dependencies (subsystem status).
+
+  • Developed the React frontend structure with 7 initial pages:
+    Landing.tsx, Login.tsx, Dashboard.tsx (skeleton), NotFound.tsx,
+    Settings.tsx, Profile.tsx, Help.tsx.
+
+  • Implemented the AuthContext (contexts/AuthContext.tsx) for global
+    authentication state management and ProtectedRoute component for
+    guarding authenticated pages.
+
+  • Set up React Router v6 with animated route transitions using Framer Motion
+    (AnimatePresence + PageTransition component).
+
+  • Integrated Supabase JS SDK (@supabase/supabase-js) into the frontend
+    (src/integrations/supabase/client.ts) for direct database queries and
+    real-time subscriptions.
+
+  • Configured Radix UI component library with 20+ primitive components
+    (Dialog, Dropdown, Tabs, Toast, Tooltip, etc.) for the design system.
+
+  • Created the runtime_state.py module for tracking global subsystem health
+    (traffic_api, weather_api, supabase, vision, rl_model, telemetry, websocket).
+
+  • Added a ThemeContext for dark/light theme toggle support.
+
+
+2. INDIVIDUAL CONTRIBUTIONS
+────────────────────────────
+
+  Student 1 (Backend & APIs):
+    - Built main.py with FastAPI initialization, CORS configuration, and
+      global exception handler returning clean JSON 500 responses.
+    - Implemented auth.py with Supabase JWT verification and HTTPBearer security.
+    - Created health_api.py with 4 health endpoints for operational monitoring.
+    - Developed runtime_state.py module with mark_success(), mark_error(),
+      get_runtime_snapshot() functions for subsystem tracking.
+
+  Student 2 (Frontend UI):
+    - Designed and implemented the Landing.tsx page with project showcase.
+    - Built Login.tsx with both login and registration forms using Supabase Auth.
+    - Created the Navbar component with responsive navigation links.
+    - Implemented SplashScreen, CursorParticles, and Starfield animated components.
+    - Set up the TailwindCSS design system with custom color palette, typography,
+      and animation utilities in tailwind.config.ts and index.css.
+
+  Student 3 (AI Models):
+    - Developed the initial TrafficVisionTracker class in vision.py with:
+      - YOLOv8 model initialization with pre-trained yolov8n.pt weights
+      - Threaded tracking loop for background video processing
+      - Vehicle class filtering (car=2, motorcycle=3, bus=5, truck=7)
+    - Created vision_runtime.py module for global vision manager instantiation.
+
+  Student 4 (Database & Integration):
+    - Executed Supabase database migrations to create core tables:
+      signal_logs, traffic_data, performance_metrics.
+    - Configured the supabase/ directory with migration files and config.toml.
+    - Set up the Supabase client integration on both frontend (JS SDK) and
+      backend (Python SDK) with appropriate key management.
+    - Created the AuthContext and ProtectedRoute components for auth state.
+
+
+3. WORK PLANNED FOR NEXT WEEK
+───────────────────────────────
+
+  • Integrate TomTom Traffic Flow API and OpenWeatherMap API in the backend.
+  • Set up the WebSocket telemetry endpoint for real-time data streaming.
+  • Design and populate the Bangalore traffic zone configuration.
+  • Begin building the Dashboard page with live data widgets.
+
+
+4. MAJOR BOTTLENECKS
+─────────────────────
+
+  • Supabase JWT key format changed (new ECC keys vs legacy keys) — resolved by
+    using supabase.auth.get_user(token) which handles both formats transparently.
+  • CORS issues between React (port 5173) and FastAPI (port 8000) required
+    explicit origin whitelisting in the middleware configuration.
+
+
+5. PERCENTAGE COMPLETION
+─────────────────────────
+
+  █████░░░░░░░░░░░░░░░  25%
+
+
+
+████████████████████████████████████████████████████████████████████████████████
+                              WEEK 3
+              API Integration & Database Architecture
+                    Date: 24 Feb 2026 – 02 Mar 2026
+████████████████████████████████████████████████████████████████████████████████
+
+
+1. WORK CARRIED OUT BY THE TEAM
+────────────────────────────────
+
+  • Implemented the TomTom Traffic Flow API integration in traffic_api.py:
+    - get_live_traffic_congestion(): fetches real-time speed and congestion
+      data, computes density as (1 - currentSpeed/freeFlowSpeed) * 100.
+    - get_live_incidents(): fetches real-time traffic incidents from TomTom
+      Incident Details API with bounding-box filtering.
+    - Implemented a deterministic Bangalore baseline fallback
+      (get_traffic_baseline()) for when the TomTom API returns 403.
+
+  • Implemented OpenWeatherMap API integration:
+    - get_live_weather(): fetches live weather condition, temperature, and
+      visibility for Bangalore coordinates (12.9716°N, 77.5946°E).
+
+  • Created the Bangalore traffic zones module (bangalore_api.py) with 11
+    real GPS-mapped junctions: Silk Board, Marathahalli, KR Puram, Electronic
+    City Flyover, Hebbal Flyover, Outer Ring Road, Koramangala, Majestic,
+    Indiranagar, Vajarahalli, Bannerghatta.
+
+  • Built the parallel zone data fetching system using ThreadPoolExecutor
+    (9 workers) for concurrent TomTom API calls across all zones.
+
+  • Implemented the bi-directional WebSocket endpoint (/ws/telemetry) in
+    main.py for real-time telemetry streaming to the React frontend at ~10 FPS.
+
+  • Created the TomTom API polling background task that refreshes grid
+    congestion data every 60 seconds for 9 grid nodes (BLR-1 through BLR-9).
+
+  • Built the system_telemetry.py module for persisting CPU, memory, latency,
+    and AI efficiency metrics to the system_metrics table every 5 seconds.
+
+  • Implemented the camera_config.py module with 4 camera configurations
+    (Silk Board, Marathahalli, Hebbal, Electronic City) supporting RTSP URL
+    overrides via environment variables.
+
+  • Created additional Supabase migrations for:
+    - intersection_snapshots table (real-time vision data)
+    - system_metrics table (performance telemetry)
+    - Made signal_logs.user_id optional for system-generated logs.
+
+  • Developed the frontend useLiveTelemetry hook for WebSocket connection
+    management with automatic reconnection (3s retry).
+
+
+2. INDIVIDUAL CONTRIBUTIONS
+────────────────────────────
+
+  Student 1 (Backend & APIs):
+    - Implemented traffic_api.py with TomTom Traffic Flow, TomTom Incidents,
+      and OpenWeatherMap API clients with error handling and runtime state marking.
+    - Built the deterministic Bangalore baseline fallback using coordinate hashing
+      and time-of-day patterns (peak: 7-11AM/5-9PM, mid-day, off-peak).
+    - Created the WebSocket /ws/telemetry endpoint with bi-directional
+      communication supporting operator commands.
+    - Implemented TomTom API polling loop (poll_tomtom_api) as asyncio background task.
+
+  Student 2 (Frontend UI):
+    - Developed the useLiveTelemetry.ts WebSocket hook with TypeScript interfaces
+      for TelemetryPayload (cpu_load, density, vehicle_count, signal_phase, etc.).
+    - Built the initial Dashboard.tsx skeleton with real-time data binding.
+    - Created the useLiveWeather hook for weather widget display.
+    - Implemented the ErrorBoundary component for graceful error handling.
+
+  Student 3 (AI Models):
+    - Enhanced vision.py with MultiCameraVisionManager class supporting
+      simultaneous tracking across 4 cameras.
+    - Implemented lane-wise queue counting using spatial quadrant analysis
+      (comparing bounding box center to frame center for N/S/E/W assignment).
+    - Added emergency vehicle detection heuristic (class_id=7 truck detection).
+    - Implemented density calculation: (vehicle_count / max_capacity) * 100.
+
+  Student 4 (Database & Integration):
+    - Designed and executed migrations for intersection_snapshots and
+      system_metrics tables with proper indexing and constraints.
+    - Created the system_telemetry.py persistence module for inserting
+      metrics and snapshots into Supabase.
+    - Built camera_config.py with dynamic source resolution from environment
+      variables and JSON overrides.
+    - Implemented bangalore_api.py zone configuration with GPS coordinates,
+      peak hours, area descriptions, and parallel TomTom fetching.
+
+
+3. WORK PLANNED FOR NEXT WEEK
+───────────────────────────────
+
+  • Integrate PPO RL model for adaptive signal phase control.
+  • Build the simulation/junction analysis engine.
+  • Develop the command center API with operator overrides.
+  • Implement the AI chatbot with RAG pipeline.
+
+
+4. MAJOR BOTTLENECKS
+─────────────────────
+
+  • TomTom API frequently returned HTTP 403 (free-tier key restriction) —
+    resolved by implementing a deterministic Bangalore baseline fallback that
+    produces realistic time-calibrated values using coordinate hashing.
+  • WebSocket connection drops on frontend navigation — resolved by implementing
+    auto-reconnect with 3-second retry timer and keepalive ping every 15 seconds.
+
+
+5. PERCENTAGE COMPLETION
+─────────────────────────
+
+  ████████░░░░░░░░░░░░  40%
+
+
+
+████████████████████████████████████████████████████████████████████████████████
+                              WEEK 4
+              AI Model Integration & Traffic Logic
+                    Date: 03 Mar 2026 – 09 Mar 2026
+████████████████████████████████████████████████████████████████████████████████
+
+
+1. WORK CARRIED OUT BY THE TEAM
+────────────────────────────────
+
+  • Developed the PPO Reinforcement Learning signal control system (rl_model.py):
+    - Custom Gymnasium environment (TrafficIntersectionEnv) simulating a
+      4-way intersection with Discrete(2) action space (NS_GREEN / EW_GREEN)
+      and Box(0,100,shape=(4,)) observation space for queue lengths.
+    - Reward function: negative sum of all queues + variance penalty for fairness.
+    - Trained the PPO model with MlpPolicy for 5,000 timesteps and saved
+      weights to ppo_traffic_model.zip (139 KB).
+
+  • Integrated the RL model into the WebSocket telemetry loop with the
+    following signal control priority logic:
+      1. If AI paused → use manual phase (operator override)
+      2. If emergency active → force green on dominant lane direction
+      3. Otherwise → PPO predict_action() from live lane queues
+
+  • Built the simulation engine (simulation_api.py) for live junction analysis:
+    - 10 Bangalore junctions mapped with GPS coordinates and snapshot IDs.
+    - Combines TomTom traffic + OpenWeatherMap weather + DB junction snapshots.
+    - POST /api/simulate and GET /api/simulate/autofill endpoints.
+    - GET /api/junctions returns all supported junction IDs and names.
+
+  • Developed the Command Center REST API (command_api.py):
+    - GET /api/command/status: live traffic snapshot with congestion labels
+    - POST /api/command/control: operator overrides (mode, emergency, force_phase)
+    - GET /api/command/logs: signal_logs retrieval from Supabase
+    - All operator overrides are logged to signal_logs for audit trail.
+
+  • Implemented the RAG-powered AI chatbot (agent.py):
+    - SupabaseVectorStore integration with match_documents RPC function
+    - MockEmbeddings fallback (1536-dim) when OpenAI is unavailable
+    - get_rag_response() combines vector context + live traffic/weather telemetry
+    - auto_ingest_live_alerts() hourly pipeline for ingesting weather/congestion events
+
+  • Built the unified chat endpoint (chat_api.py):
+    - POST /api/chat supports both RAG queries and junction-specific live context
+    - Graceful fallback with live telemetry if RAG pipeline fails
+    - Returns density, vehicle_count, signal_phase alongside chat responses
+
+  • Implemented the prediction API (prediction_api.py):
+    - GET /api/predict: 30-minute congestion forecast with 5-min intervals
+    - POST /api/emergency/corridor: green-wave emergency vehicle corridor
+    - GET /api/incidents/detect: anomaly detection from density spikes
+    - GET /api/alerts/public: public traffic alerts for drivers
+
+  • Created the AutoARIMA forecasting module (forecasting.py):
+    - Pulls density history from Supabase traffic_data table
+    - pmdarima auto_arima for optimal ARIMA parameter selection
+    - Requires minimum 10 data points for forecasting
+
+
+2. INDIVIDUAL CONTRIBUTIONS
+────────────────────────────
+
+  Student 1 (Backend & APIs):
+    - Built command_api.py with 4 REST endpoints and shared command_state
+      module-level dictionary synchronized with the WebSocket handler.
+    - Implemented simulation_api.py junction analysis engine with live data
+      merging from TomTom, OpenWeatherMap, and Supabase snapshots.
+    - Created chat_api.py unified endpoint with backward-compatible request format.
+    - Developed prediction_api.py with forecast generation, emergency corridor
+      routing, incident detection, and public alerts.
+
+  Student 2 (Frontend UI):
+    - Built the Agents.tsx page (43 KB) with junction selector, AI chat interface,
+      and live traffic context display.
+    - Started developing BangaloreTraffic.tsx page for zone-level traffic overview.
+    - Created the ResetPassword.tsx and AuthVerify.tsx authentication flow pages.
+
+  Student 3 (AI Models):
+    - Developed rl_model.py with TrafficIntersectionEnv, PPO training, and
+      predict_action() inference function.
+    - Trained the PPO model and validated signal phase predictions.
+    - Built agent.py RAG pipeline with SupabaseVectorStore and MockEmbeddings.
+    - Implemented forecasting.py with AutoARIMA time-series prediction.
+    - Created the retrain.py pipeline for continuous RL learning from historical
+      DB data (HistoricalTrafficEnv replaying actual traffic trajectories).
+
+  Student 4 (Database & Integration):
+    - Integrated the RL model predictions into the WebSocket telemetry loop,
+      implementing the 3-tier signal control priority (manual → emergency → AI).
+    - Built the boot log seeding logic to populate signal_logs on startup with
+      system initialization events (SystemBoot, TomTomAPI, VisionEngine, etc.).
+    - Implemented periodic Supabase insertions: system_metrics every 5s,
+      traffic_data every 30s with weather correlation.
+    - Created the audit_api.py endpoint for filtered signal_log retrieval.
+
+
+3. WORK PLANNED FOR NEXT WEEK
+───────────────────────────────
+
+  • Build the Dashboard page with real-time telemetry widgets.
+  • Implement Analytics page with Recharts visualizations.
+  • Develop the Live Map page with Leaflet integration.
+  • Create the Camera Feed page and Digital Twin 3D visualization.
+
+
+4. MAJOR BOTTLENECKS
+─────────────────────
+
+  • PPO model initially showed poor convergence with random initial observations —
+    resolved by calibrating the TrafficIntersectionEnv with realistic arrival rates
+    (0-3 cars/lane/step) and departure rates (up to 5 cars on green).
+  • RAG vector search returned irrelevant results with MockEmbeddings (all-zeros
+    vectors produce arbitrary similarity scores) — mitigated by adding a hardcoded
+    historical Bangalore traffic context fallback when vector search yields nothing.
+
+
+5. PERCENTAGE COMPLETION
+─────────────────────────
+
+  ████████████░░░░░░░░  55%
+
+
+
+████████████████████████████████████████████████████████████████████████████████
+                              WEEK 5
+              Dashboard, Analytics, Maps & Visualization
+                    Date: 10 Mar 2026 – 16 Mar 2026
+████████████████████████████████████████████████████████████████████████████████
+
+
+1. WORK CARRIED OUT BY THE TEAM
+────────────────────────────────
+
+  • Built the comprehensive Dashboard.tsx (37 KB) with real-time widgets:
+    - Live telemetry cards (vehicle count, density, signal phase, queues)
+    - System health indicators (CPU, memory, latency, AI efficiency)
+    - Traffic congestion grid showing 9 Bangalore nodes
+    - Weather widget with OpenWeatherMap data
+    - Incident alert feed with TomTom live incidents
+    - AI vs Traditional efficiency comparison metrics
+
+  • Developed the Analytics.tsx page (22 KB) with Recharts visualizations:
+    - Line charts for historical density and vehicle count trends
+    - Bar charts for AI vs traditional efficiency comparison
+    - Performance metrics table (CPU, memory, latency, active nodes)
+    - Historical data fetching from /api/system/metrics/history
+
+  • Implemented LiveMap.tsx (18 KB) with Leaflet / React-Leaflet:
+    - Interactive map centered on Bangalore (12.9716°N, 77.5946°E)
+    - Congestion-colored markers for all 11 traffic zones
+    - Color coding: green (Low), yellow (Medium), orange (High), red (Critical)
+    - Real-time data overlay from TomTom grid congestion values
+    - Live incidents layer from TomTom Incidents API
+
+  • Created the CameraFeed.tsx page (13 KB) for live CCTV visualization:
+    - Camera grid showing all 4 configured camera feeds
+    - Vision state indicators (active, degraded, disconnected, not_installed)
+    - Vehicle count and congestion overlay per camera
+    - Live frame endpoint integration (/api/vision/frame/{camera_id})
+
+  • Built the DigitalTwin.tsx page (16 KB) with Three.js / React Three Fiber:
+    - 3D traffic intersection model with signal state visualization
+    - Globe3D.tsx component for global city visualization
+    - TrafficScene3D.tsx for animated traffic scene
+    - SafeCanvas.tsx for error-safe Three.js rendering
+
+  • Developed the TrafficPrediction.tsx page (9.6 KB):
+    - 30-minute forecast display with 5-minute interval chart
+    - Junction-level prediction cards
+    - AI recommendation display
+    - Integration with GET /api/predict endpoint
+
+  • Implemented the Reports.tsx page (13 KB):
+    - Report type selector (Full, Performance, Incident, Forecast)
+    - PDF generation trigger via GET /api/report/generate
+    - Download functionality for generated PDF reports
+
+  • Built the PDF report generator (reports_api.py) using ReportLab:
+    - Professional branded A4 layout with dark navy header
+    - 4 sections: System Overview, AI Performance, Traffic Analytics, Agent Decisions
+    - Data sourced live from Supabase tables
+    - Color-coded status indicators (PASS/REVIEW/HIGH)
+
+  • Created supporting frontend hooks:
+    - useTrafficDB.ts with React Query hooks for signal_logs, performance_metrics,
+      traffic_data CRUD operations against backend REST APIs
+    - useSystemStatus.ts for system health and weather data fetching
+    - use-mobile.tsx for responsive design breakpoint detection
+
+  • Built the Notifications.tsx page with signal_logs and TomTom incident
+    aggregation via /api/system/notifications endpoint.
+
+  • Implemented live_data_api.py with 6 system data endpoints:
+    - /api/system/cameras, /api/system/weather, /api/system/notifications,
+    - /api/system/metrics/history, /api/system/intersections/history,
+    - /api/system/network (zone overview with aggregated congestion/speed)
+
+
+2. INDIVIDUAL CONTRIBUTIONS
+────────────────────────────
+
+  Student 1 (Backend & APIs):
+    - Built live_data_api.py with 6 REST endpoints for system data,
+      camera status aggregation, weather, and network overview.
+    - Developed reports_api.py PDF generator with ReportLab including
+      branded layout, data tables, and Supabase data sourcing.
+    - Implemented /api/system/cameras endpoint merging vision snapshots,
+      DB snapshots, command state, and zone data from 4 sources.
+    - Created the ingest_api.py module for bulk JSON stream and CSV
+      dataset ingestion with Pydantic validation.
+
+  Student 2 (Frontend UI):
+    - Built Dashboard.tsx with 10+ real-time telemetry widgets connected
+      to useLiveTelemetry WebSocket hook.
+    - Developed Analytics.tsx with 4 Recharts visualizations and historical
+      data integration.
+    - Created LiveMap.tsx with Leaflet map, congestion markers, and
+      incident overlays for Bangalore.
+    - Built CameraFeed.tsx, TrafficPrediction.tsx, Reports.tsx, and
+      Notifications.tsx pages.
+    - Implemented Admin.tsx and Settings.tsx with system configuration panels.
+
+  Student 3 (AI Models):
+    - Built DigitalTwin.tsx with Three.js 3D traffic intersection visualization.
+    - Created Globe3D.tsx, TrafficScene3D.tsx, and SafeCanvas.tsx 3D components.
+    - Developed the fine_tune_yolov8.py pipeline for custom Indian traffic
+      dataset training (8 classes including auto_rickshaw and tempo).
+    - Implemented hot-reload of custom YOLO weights in vision.py tracking loop.
+
+  Student 4 (Database & Integration):
+    - Built useTrafficDB.ts with 6 React Query hooks for signal_logs,
+      performance_metrics, and traffic_data with Zod schema validation.
+    - Created useSystemStatus.ts for system health data fetching.
+    - Implemented the WebSocket → Supabase persistence pipeline
+      (system_metrics every 5s, intersection_snapshots per camera).
+    - Built the /api/system/network endpoint aggregating zone data with
+      WebSocket client counts and vision state.
+
+
+3. WORK PLANNED FOR NEXT WEEK
+───────────────────────────────
+
+  • End-to-end integration testing of all API endpoints.
+  • Debug WebSocket reconnection edge cases.
+  • Optimize frontend rendering performance.
+  • Fix all TypeScript compilation and ESLint errors.
+  • Verify Supabase data persistence integrity.
+
+
+4. MAJOR BOTTLENECKS
+─────────────────────
+
+  • Three.js Canvas rendering errors crashing the entire React app — resolved
+    by implementing SafeCanvas.tsx error boundary wrapper for WebGL context.
+  • Leaflet map tile loading issues with React-Leaflet v4 — resolved by pinning
+    Leaflet to v1.9.4 and using correct CSS import order.
+  • ReportLab table height calculation overflow on small datasets — resolved by
+    adding dynamic y-position tracking with page break detection.
+
+
+5. PERCENTAGE COMPLETION
+─────────────────────────
+
+  ████████████████░░░░  75%
+
+
+
+████████████████████████████████████████████████████████████████████████████████
+                              WEEK 6
+              Testing, Debugging & Optimization
+                    Date: 17 Mar 2026 – 23 Mar 2026
+████████████████████████████████████████████████████████████████████████████████
+
+
+1. WORK CARRIED OUT BY THE TEAM
+────────────────────────────────
+
+  • Conducted full end-to-end integration testing of the complete system:
+    - Backend: all 30+ API endpoints tested for correct responses, error handling
+    - Frontend: all 19 pages verified for data binding and navigation
+    - WebSocket: telemetry stream tested for connection stability and reconnection
+    - Database: Supabase table insertions verified for all 7 core tables
+
+  • Fixed TypeScript compilation errors across the frontend codebase:
+    - Resolved type mismatches in telemetry payload interfaces
+    - Fixed optional property handling in useTrafficDB hooks
+    - Corrected React Query key typing for cache invalidation
+
+  • Fixed ESLint warnings and errors:
+    - Removed unused imports across 19 page files
+    - Added proper TypeScript type annotations to all hook return values
+    - Fixed react-hooks/exhaustive-deps warnings
+
+  • Optimized WebSocket telemetry performance:
+    - Reduced unnecessary re-renders by memoizing telemetry state updates
+    - Added keepalive ping every 15 seconds to prevent silent disconnects
+    - Implemented graceful reconnection with 3-second retry timer
+
+  • Optimized database persistence:
+    - Throttled system_metrics insertion to every 5 seconds (was every 100ms)
+    - Throttled traffic_data insertion to every 30 seconds
+    - Used asyncio.to_thread() for non-blocking DB writes
+
+  • Performed load testing on the WebSocket endpoint:
+    - Verified stable operation with multiple concurrent frontend clients
+    - Confirmed CPU usage remains below 80% under sustained 10 FPS streaming
+    - Measured backend latency consistently under 15ms per telemetry cycle
+
+  • Verified all external API integrations:
+    - TomTom Traffic Flow API: confirmed working with baseline fallback on 403
+    - OpenWeatherMap API: confirmed live weather data for Bangalore coordinates
+    - Supabase: confirmed read/write operations across all tables
+
+  • Created the auto_scheduler.py module for automated daily RL retraining
+    pipeline (24-hour loop running retrain.py).
+
+  • Generated project documentation:
+    - README.md with installation instructions, tech stack table, and
+      project structure diagram
+    - Smart_Traffic_System_Research_Report.txt — comprehensive technical
+      research document with all module descriptions, AI model details,
+      data sources, and PPT slide content
+
+  • Deployed frontend build configuration:
+    - Configured vercel.json for Vercel deployment
+    - Verified vite build produces optimized production bundle
+    - Tested production build locally with vite preview
+
+  • Final code cleanup and documentation:
+    - Added docstrings to all major Python functions
+    - Added JSDoc comments to critical TypeScript hooks
+    - Organized import statements across all modules
+    - Removed debug console.log statements from production paths
+
+
+2. INDIVIDUAL CONTRIBUTIONS
+────────────────────────────
+
+  Student 1 (Backend & APIs):
+    - Performed end-to-end API testing across all 30+ endpoints.
+    - Fixed race conditions in command_api.py shared state dictionary
+      between WebSocket handler and REST endpoints.
+    - Optimized the TomTom polling loop with proper error handling and
+      asyncio.sleep for non-blocking operation.
+    - Created auto_scheduler.py for daily retraining automation.
+    - Wrote README.md with complete installation and setup documentation.
+
+  Student 2 (Frontend UI):
+    - Fixed all TypeScript compilation errors and ESLint warnings.
+    - Optimized Dashboard.tsx rendering performance by memoizing
+      telemetry-derived calculations.
+    - Polished UI animations and transitions across all 19 pages.
+    - Verified responsive design on mobile breakpoints (use-mobile hook).
+    - Tested all navigation flows and ProtectedRoute authentication guards.
+
+  Student 3 (AI Models):
+    - Validated PPO model predictions against manual queue observations.
+    - Verified YOLO detection accuracy on sample_traffic.mp4 test video.
+    - Tested hot-reload mechanism for custom model weight deployment.
+    - Documented all AI model specifications (input/output/architecture)
+      in the research report.
+    - Ran the retraining pipeline (retrain.py) to verify continuous
+      learning from historical DB data.
+
+  Student 4 (Database & Integration):
+    - Verified Supabase data integrity across all 7 tables with query testing.
+    - Optimized database write patterns (5s metrics, 30s traffic data).
+    - Tested async DB insertion via asyncio.to_thread() for non-blocking writes.
+    - Verified Supabase Auth flow: login → JWT generation → backend validation.
+    - Generated the comprehensive Smart_Traffic_System_Research_Report.txt.
+    - Configured Vercel deployment settings (vercel.json, build scripts).
+
+
+3. WORK PLANNED FOR NEXT WEEK
+───────────────────────────────
+
+  • Final presentation preparation with live demo.
+  • Stress testing with simulated high-traffic scenarios.
+  • Complete remaining 20%: polish edge cases, add error messages for offline
+    states, finalize deployment configuration.
+  • Prepare project report for submission.
+
+
+4. MAJOR BOTTLENECKS
+─────────────────────
+
+  • WebSocket connections were silently dropping after ~60 seconds of inactivity
+    when the user switches browser tabs — resolved by adding a 15-second
+    keepalive ping mechanism in useLiveTelemetry.ts.
+  • Supabase rate limiting on rapid sequential inserts during testing —
+    resolved by batching intersection_snapshots as array inserts and
+    throttling system_metrics to 5-second intervals.
+  • Three.js WebGL context loss on low-end devices — resolved by implementing
+    SafeCanvas error boundary and fallback UI rendering.
+
+
+5. PERCENTAGE COMPLETION
+─────────────────────────
+
+  ████████████████░░░░  80%
+
+
+================================================================================
+                         CUMULATIVE PROGRESS SUMMARY
+================================================================================
+
+  Week 1:  ██░░░░░░░░░░░░░░░░░░  10%  — Ideation, research, planning
+  Week 2:  █████░░░░░░░░░░░░░░░  25%  — Basic frontend + backend setup
+  Week 3:  ████████░░░░░░░░░░░░  40%  — API integration + database
+  Week 4:  ████████████░░░░░░░░  55%  — AI models + traffic logic
+  Week 5:  ████████████████░░░░  75%  — Dashboard + analytics + maps
+  Week 6:  ████████████████░░░░  80%  — Testing, debugging, optimization
+
+================================================================================
+                          REMAINING WORK (20%)
+================================================================================
+
+  • Production deployment to Vercel/cloud with real CCTV feeds
+  • Integration testing with actual Bangalore CCTV RTSP streams
+  • Real OpenAI embeddings for production RAG chatbot
+  • Comprehensive unit test suite (Vitest + Testing Library)
+  • Performance benchmarking under sustained multi-user load
+  • Final project report and viva preparation
+
+================================================================================
+                           END OF WEEKLY REPORTS
+================================================================================

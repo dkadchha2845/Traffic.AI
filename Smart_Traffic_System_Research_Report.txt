@@ -1,0 +1,873 @@
+================================================================================
+        SMART TRAFFIC MANAGEMENT SYSTEM — RESEARCH REPORT
+        Traffic.AI — Agentic AI-Based Smart City Traffic Command Center
+================================================================================
+
+Generated: 2026-03-23
+Project: Traffic.AI (package name: traffic_ai)
+Repository: nexus-grid-logic-main
+City Target: Bangalore, Karnataka, India
+License: MIT
+
+================================================================================
+1. TITLE
+================================================================================
+
+"Traffic.AI — Agentic AI-Based Smart Traffic Management System for Bangalore"
+
+A production-hardened, multi-agent AI system for real-time urban traffic
+monitoring, signal optimization, predictive analytics, and emergency corridor
+management in the Bangalore metropolitan area.
+
+
+================================================================================
+2. ABSTRACT
+================================================================================
+
+Traffic.AI is a full-stack smart traffic management system that combines
+real-time computer vision (YOLOv8), reinforcement learning (PPO via Stable
+Baselines3), time-series forecasting (AutoARIMA), and live external API
+integration (TomTom Traffic Flow, OpenWeatherMap) to monitor, analyze, and
+optimize traffic flow across 11 major Bangalore traffic zones.
+
+The system features a React 18 / TypeScript frontend with 19 pages, a Python
+FastAPI backend with 20+ API modules, a Supabase (PostgreSQL) database for
+persistent telemetry, and a bi-directional WebSocket architecture for real-time
+telemetry streaming at ~10 FPS.
+
+The AI pipeline includes:
+  - YOLOv8n for vehicle detection and lane-wise queue counting
+  - PPO Reinforcement Learning for adaptive traffic signal control
+  - AutoARIMA for 30-minute congestion forecasting
+  - RAG (Retrieval Augmented Generation) chatbot with Supabase vector store
+  - Automated retraining pipeline for continuous RL model improvement
+
+
+================================================================================
+3. INTRODUCTION
+================================================================================
+
+Urban traffic congestion is a critical challenge in Indian metropolitan cities.
+Bangalore, one of the fastest-growing tech hubs, experiences severe congestion
+at key junctions such as Silk Board, Marathahalli, Hebbal Flyover, KR Puram
+Bridge, and Electronic City.
+
+Traffic.AI addresses this problem through a software-only, multi-agent
+architecture that:
+
+  1. Monitors real-time traffic conditions using CCTV/RTSP camera feeds
+     processed by YOLOv8 computer vision
+  2. Optimizes traffic signal phases using a PPO reinforcement learning agent
+     trained on a custom 4-way intersection environment
+  3. Predicts future congestion using time-series analysis (AutoARIMA) on
+     historical telemetry data stored in Supabase
+  4. Integrates live external data from TomTom Traffic Flow API and
+     OpenWeatherMap API for enhanced situational awareness
+  5. Provides a comprehensive web-based command center for traffic operators
+     with real-time dashboards, analytics, maps, and PDF report generation
+
+The system is designed specifically for 11 major Bangalore traffic zones with
+real GPS coordinates and supports both live API data and a calibrated baseline
+fallback system when APIs return 403 errors.
+
+
+================================================================================
+4. SYSTEM ARCHITECTURE
+================================================================================
+
+4.1 HIGH-LEVEL DATA FLOW
+-------------------------
+
+  [CCTV/RTSP Cameras] --> [YOLOv8 Vision Tracker] --> [Vehicle Count + Lanes]
+                                                          |
+  [TomTom API] -------> [Traffic Congestion Data] --------|
+                                                          v
+                                                   [FastAPI Backend]
+                                                     |       |
+                                              [RL Model]  [Supabase DB]
+                                                |    |        |
+                                          [Signal   [Telemetry   [Historical
+                                           Phase]    Storage]     Data]
+                                                |
+                                          [WebSocket /ws/telemetry]
+                                                |
+                                          [React Frontend]
+                                            - Dashboard
+                                            - Live Map
+                                            - Analytics
+                                            - Command Center
+                                            - Camera Feed
+                                            - Digital Twin
+                                            - Reports
+
+4.2 LAYER ARCHITECTURE
+-----------------------
+
+FRONTEND LAYER:
+  - React 18.3, Vite 5, TypeScript
+  - TailwindCSS 3.4, Framer Motion 12
+  - React Router 6, React Query v5
+  - Recharts for data visualization
+  - Leaflet / React-Leaflet for maps
+  - Three.js / React Three Fiber for 3D Digital Twin
+  - Supabase JS SDK for auth and direct DB queries
+  - WebSocket client for real-time telemetry
+
+BACKEND LAYER:
+  - Python 3.10+, FastAPI, Uvicorn
+  - Pydantic v2 for request/response validation
+  - WebSocket server for bi-directional telemetry
+  - psutil for hardware monitoring (CPU, Memory)
+  - ReportLab for PDF report generation
+  - pandas for data processing
+  - requests for external API calls
+
+AI/ML LAYER:
+  - YOLOv8n (Ultralytics) for vehicle detection
+  - Stable Baselines3 PPO for signal optimization
+  - Gymnasium for RL environment simulation
+  - pmdarima (AutoARIMA) for time-series forecasting
+  - LangChain Community for RAG vector store
+
+DATABASE LAYER:
+  - Supabase (PostgreSQL) with the following tables:
+    - signal_logs        (AI decision audit trail)
+    - traffic_data       (intersection lane counts + density)
+    - intersection_snapshots   (real-time vision snapshots)
+    - system_metrics     (CPU, memory, latency, AI efficiency)
+    - performance_metrics (legacy performance table)
+    - documents          (RAG vector store for chatbot)
+    - traffic_history    (bulk ingested historical data)
+
+EXTERNAL API LAYER:
+  - TomTom Traffic Flow API (congestion, speed, incidents)
+  - OpenWeatherMap API (weather conditions, temperature, visibility)
+  - OpenAI GPT API key configured (for RAG agent, uses MockEmbeddings fallback)
+
+
+================================================================================
+5. TECHNOLOGIES USED
+================================================================================
+
+CATEGORY              TECHNOLOGY                        VERSION / DETAILS
+-----------           --------------------------------  ----------------------
+Frontend Framework    React                             18.3.1
+Build Tool            Vite                              5.4.19
+Language (FE)         TypeScript                        5.8.3
+Styling               TailwindCSS                       3.4.17
+Animations            Framer Motion                     12.34.3
+State Management      TanStack React Query              5.83.0
+Routing               React Router DOM                  6.30.1
+Charts                Recharts                          2.15.4
+Maps                  Leaflet + React-Leaflet           1.9.4 / 4.2.1
+3D Rendering          Three.js + React Three Fiber      0.170.0 / 8.18.0
+UI Components         Radix UI (20+ primitives)         Various
+Notifications         Sonner                            1.7.4
+Forms                 React Hook Form + Zod             7.61.1 / 3.25.76
+Backend Framework     FastAPI                           0.111.0
+ASGI Server           Uvicorn                           0.29.0
+Backend Language      Python                            3.10+
+Database              Supabase (PostgreSQL)             2.5.0
+ORM / Client          Supabase Python Client            2.5.0
+Auth                  Supabase Auth + JWT (python-jose) 3.3.0
+Object Detection      Ultralytics YOLOv8                Latest (yolov8n.pt)
+Computer Vision       OpenCV (opencv-python)            Latest
+RL Framework          Stable Baselines3 (PPO)           Latest
+RL Environment        Gymnasium                         Latest
+Forecasting           pmdarima (AutoARIMA)              Latest
+RAG / LLM             LangChain + LangChain Community   0.2.1
+Data Processing       pandas                            Latest
+System Monitoring     psutil                            Latest
+PDF Generation        ReportLab                         Latest
+HTTP Client           requests                          Latest
+Environment           python-dotenv                     1.0.1
+Testing (FE)          Vitest + Testing Library           3.2.4 / 16.0.0
+Deployment Config     Vercel (vercel.json)              -
+CSS Processing        PostCSS + Autoprefixer             8.5.6 / 10.4.21
+
+
+================================================================================
+6. AI MODELS USED
+================================================================================
+
+6.1 YOLOv8n — Vehicle Detection & Lane Queue Counting
+------------------------------------------------------
+  File:        backend/vision.py, backend/vision_runtime.py
+  Model File:  backend/yolov8n.pt (6.5 MB, pre-trained nano model)
+  Library:     Ultralytics
+  Input:       CCTV/RTSP video frames (webcam, video file, or stream URL)
+  Output:      - Vehicle count per frame
+               - Density percentage (count / max_capacity * 100)
+               - Lane-wise queue counts (north, south, east, west)
+               - Emergency vehicle detection (truck class_id=7)
+               - Annotated JPEG frame for live streaming
+  Role:        Real-time vehicle detection and spatial queue analysis.
+               Classifies vehicles in classes [2:car, 3:motorcycle, 5:bus, 7:truck].
+               Runs at ~15 FPS with confidence threshold 0.3.
+               Supports hot-reload of custom fine-tuned weights (yolov8n_custom.pt).
+  Multi-Camera: Managed by MultiCameraVisionManager class supporting 4 cameras:
+               cam-silk-board, cam-marathahalli, cam-hebbal, cam-ecity
+
+6.2 PPO (Proximal Policy Optimization) — Signal Phase Control
+--------------------------------------------------------------
+  File:        backend/rl_model.py
+  Model File:  backend/ppo_traffic_model.zip (139 KB, pre-trained)
+  Library:     Stable Baselines3
+  Environment: TrafficIntersectionEnv (custom Gymnasium env)
+    - Action Space: Discrete(2) — 0=NS_GREEN, 1=EW_GREEN
+    - Observation Space: Box(0, 100, shape=(4,)) — [North, South, East, West] queue lengths
+    - Reward: Negative sum of queue lengths + variance penalty (fairness)
+    - Max Steps: 200 per episode
+  Input:       Lane queue counts [N, S, E, W] from YOLO vision or TomTom fallback
+  Output:      Optimal signal phase (0=NS_GREEN or 1=EW_GREEN)
+  Role:        Adaptive traffic signal control. Decides which direction gets
+               green light based on real-time queue observations.
+               Falls back to NS_GREEN (action=0) if model is not loaded.
+  Training:    train_ppo_model() function with configurable timesteps.
+               Default training: 5,000 timesteps.
+               MlpPolicy (Multi-Layer Perceptron) neural network.
+
+6.3 PPO Retraining on Historical Data
+---------------------------------------
+  File:        backend/retrain.py
+  Environment: HistoricalTrafficEnv (custom Gymnasium env replaying DB records)
+    - Observation Space: Box(0, 500, shape=(4,))
+    - Replays actual traffic data from Supabase traffic_data table
+  Input:       Historical lane counts (north, south, east, west) from database
+  Output:      Updated ppo_traffic_model.zip weights
+  Role:        Continuous learning pipeline. Loads historical trajectories
+               from Supabase and retrains the PPO model (10,000 timesteps).
+               Supports both fine-tuning (loading existing weights) and cold start.
+
+6.4 AutoARIMA — Traffic Congestion Forecasting
+------------------------------------------------
+  File:        backend/forecasting.py
+  Library:     pmdarima
+  Input:       Historical density series from Supabase traffic_data table
+               (last 100 records for intersection BLR-CORE-1)
+  Output:      5-step ahead congestion predictions (list of density values)
+  Role:        Time-series forecasting model. Uses auto_arima with stepwise
+               selection to find optimal ARIMA parameters. Requires minimum 10
+               data points. Logs predictions to signal_logs table.
+
+6.5 Trend Projection — Real-Time Forecasting (prediction_api.py)
+-----------------------------------------------------------------
+  File:        backend/prediction_api.py
+  Method:      _forecast_congestion()
+  Input:       Current congestion + recent density history from intersection_snapshots
+  Output:      5-minute interval predictions for up to 120 minutes ahead
+  Role:        Lightweight linear trend projection using last 2 data points
+               for real-time dashboard predictions. Bounded by observed
+               historical floor/ceiling. Different from AutoARIMA module.
+
+6.6 YOLOv8 Fine-Tuning Pipeline
+----------------------------------
+  File:        backend/fine_tune_yolov8.py
+  Input:       Indian traffic dataset (stub configuration with 8 classes:
+               pedestrian, bicycle, car, motorcycle, auto_rickshaw, bus, tempo, truck)
+  Output:      Fine-tuned weights at yolov8n_custom.pt
+  Role:        Training pipeline for customizing YOLOv8 on Indian traffic vehicles.
+               Currently uses stub dataset.yaml (real dataset not included).
+               Supports hot-reload deployment — vision tracker auto-detects new weights.
+
+6.7 RAG Agent — AI Chatbot
+----------------------------
+  File:        backend/agent.py
+  Libraries:   LangChain Community, Supabase Vector Store
+  Input:       User query + live weather/traffic telemetry + vector store context
+  Output:      Contextual traffic advisory response
+  Role:        Retrieval Augmented Generation chatbot. Uses SupabaseVectorStore
+               with MockEmbeddings (1536-dim zero vectors) as fallback when
+               OpenAI embeddings are unavailable. Falls back to hardcoded
+               historical Bangalore traffic data if vector search fails.
+               Auto-ingests live weather and traffic alerts hourly.
+
+
+================================================================================
+7. DATA SOURCES
+================================================================================
+
+7.1 TomTom Traffic Flow API
+-----------------------------
+  Endpoint:    https://api.tomtom.com/traffic/services/4/flowSegmentData/...
+  Data:        - Current speed (km/h)
+               - Free-flow speed (km/h)
+               - Congestion level (derived: (1 - current/freeflow) * 100)
+  Usage:       - Polled every 60 seconds for 9 Bangalore grid nodes (BLR-1 to BLR-9)
+               - Used in simulation_api.py for live junction analysis
+               - Used in bangalore_api.py for zone-level traffic snapshots
+  Fallback:    get_traffic_baseline() — time-calibrated deterministic baseline
+               using coordinate hash for consistent values when API returns 403.
+
+7.2 TomTom Incidents API
+--------------------------
+  Endpoint:    https://api.tomtom.com/traffic/services/5/incidentDetails?...
+  Data:        Real-time traffic incidents (type, geometry, icon category)
+  Usage:       Fed into WebSocket telemetry payload as live_incidents.
+               Displayed on Dashboard and Live Map.
+
+7.3 OpenWeatherMap API
+------------------------
+  Endpoint:    https://api.openweathermap.org/data/2.5/weather?...
+  Data:        - Weather condition (clear, clouds, rain, etc.)
+               - Temperature (Celsius)
+               - Visibility (meters)
+  Usage:       - Displayed on Dashboard weather widget
+               - Used in traffic_data rows for prediction correlation
+               - Integrated into chatbot responses
+  Default Coordinates: Bangalore (12.9716, 77.5946)
+
+7.4 Supabase PostgreSQL Database
+----------------------------------
+  URL:         https://pkeebpbnbrvfdeouhdqc.supabase.co
+  Tables:
+    - signal_logs:            AI decision logs, operator overrides, system events
+    - traffic_data:           Lane counts (N,S,E,W), density, weather, mode per intersection
+    - intersection_snapshots: Real-time YOLO vision snapshots per camera
+    - system_metrics:         CPU, memory, latency, AI/traditional efficiency
+    - performance_metrics:    Legacy performance metrics table
+    - documents:              RAG vector store (match_documents RPC function)
+    - traffic_history:        Bulk-ingested historical datasets
+
+7.5 CCTV / RTSP Camera Streams
+---------------------------------
+  Configuration: backend/camera_config.py
+  Cameras:       4 configured cameras (source via environment variables):
+    - cam-silk-board     (Primary, CCTV_RTSP_URL_SILK_BOARD)
+    - cam-marathahalli   (CCTV_RTSP_URL_MARATHAHALLI)
+    - cam-hebbal         (CCTV_RTSP_URL_HEBBAL)
+    - cam-ecity          (CCTV_RTSP_URL_ECITY)
+  Fallback:      Also supports CCTV_RTSP_URL (legacy single-camera env var)
+  Sample Video:  backend/sample_traffic.mp4 (2.8 MB) for testing
+
+7.6 Sample / Test Data Files
+-------------------------------
+  - backend/sample_traffic.mp4     : Sample traffic video for vision testing
+  - backend/ppo_traffic_model.zip  : Pre-trained PPO model weights
+  - backend/yolov8n.pt             : Pre-trained YOLOv8 nano model weights
+
+
+================================================================================
+8. MODULE DESCRIPTION
+================================================================================
+
+8.1 BACKEND MODULES
+====================
+
+8.1.1 main.py — Application Entry Point & WebSocket Telemetry
+  - FastAPI application initialization with CORS middleware
+  - WebSocket /ws/telemetry endpoint for bi-directional real-time telemetry
+  - TomTom API polling loop (every 60s for 9 grid nodes)
+  - Vision system startup (MultiCameraVisionManager)
+  - RL model loading on startup
+  - Supabase boot log seeding
+  - Auto-ingestion of live alerts (RAG pipeline)
+  - System telemetry persistence (every 5s to Supabase)
+  - Traffic data insertion (every 30s to Supabase)
+
+8.1.2 vision.py — YOLOv8 Computer Vision Engine
+  - TrafficVisionTracker class: single-camera YOLO tracking with threading
+  - MultiCameraVisionManager: manages multiple TrafficVisionTracker instances
+  - Vehicle detection (car, motorcycle, bus, truck)
+  - Lane-wise queue counting (spatial quadrant analysis)
+  - Emergency vehicle detection (truck class = 7)
+  - Hot-reload of custom fine-tuned model weights
+  - JPEG frame encoding for live video streaming
+
+8.1.3 rl_model.py — PPO Reinforcement Learning Agent
+  - TrafficIntersectionEnv: custom Gymnasium 4-way intersection environment
+  - PPO model training, loading, and prediction
+  - Action space: NS_GREEN (0) or EW_GREEN (1)
+  - Reward: minimize total queue + fairness variance penalty
+
+8.1.4 traffic_api.py — External API Integration
+  - get_live_weather(): OpenWeatherMap API client
+  - get_live_traffic_congestion(): TomTom Flow API with baseline fallback
+  - get_live_incidents(): TomTom Incidents API
+  - get_traffic_baseline(): deterministic Bangalore baseline for API failures
+
+8.1.5 simulation_api.py — Live Junction Analysis Engine
+  - 10 Bangalore junctions with real GPS coordinates
+  - Combines TomTom traffic, OpenWeatherMap weather, and DB snapshots
+  - POST /api/simulate: live junction analysis
+  - GET /api/simulate/autofill: pre-fill junction analysis panel
+  - GET /api/junctions: list all supported junctions
+  - Live chat response generation for junction-specific queries
+
+8.1.6 command_api.py — Command Center REST API
+  - GET /api/command/status: current traffic snapshot
+  - POST /api/command/control: operator overrides (mode, emergency, force_phase)
+  - GET /api/command/logs: signal_logs from Supabase
+  - POST /api/command/simulate: live junction analysis wrapper
+
+8.1.7 bangalore_api.py — Bangalore Traffic Zones API
+  - 11 Bangalore zones with GPS coordinates, peak hours, and area descriptions
+  - Parallel TomTom API fetching (ThreadPoolExecutor, 9 workers)
+  - Congestion derivation from speed/free-flow ratio
+  - AI-generated traffic recommendations per congestion level
+  - GET /api/bangalore/traffic: all zone snapshots
+
+8.1.8 prediction_api.py — Forecasting & Emergency Corridors
+  - GET /api/predict: 30-minute traffic congestion forecast (5-min intervals)
+  - POST /api/emergency/corridor: green-wave emergency corridor routing
+  - GET /api/incidents/detect: anomaly detection from density deltas
+  - GET /api/alerts/public: public traffic alerts for drivers
+
+8.1.9 chat_api.py — Unified AI Chat Endpoint
+  - POST /api/chat: unified chat supporting both RAG and live context modes
+  - Junction-specific live chat (using simulation_api)
+  - General RAG queries (using agent.py)
+  - Graceful fallback with live telemetry if RAG fails
+
+8.1.10 reports_api.py — PDF Report Generation
+  - GET /api/report/generate: generates branded A4 PDF reports
+  - 4 report types: Full, Performance, Incident, Forecast
+  - Sections: System Overview, AI Performance Analytics, Traffic Analytics, Recent Agent Decisions
+  - Data sourced from Supabase (system_metrics, signal_logs, intersection_snapshots)
+  - Professional styling with ReportLab (branded header, tables, color coding)
+
+8.1.11 agent.py — RAG Agent
+  - get_rag_response(): RAG with Supabase vector store + live telemetry
+  - ingest_real_life_scenario(): adds documents to vector store
+  - auto_ingest_live_alerts(): hourly auto-ingestion of weather/traffic alerts
+  - MockEmbeddings fallback (1536-dim) when OpenAI unavailable
+
+8.1.12 forecasting.py — AutoARIMA Forecasting
+  - generate_traffic_forecast(): pulls density history from Supabase
+  - Fits AutoARIMA model and predicts 5 steps ahead
+  - Requires minimum 10 data points to forecast
+
+8.1.13 live_data_api.py — System Data Endpoints
+  - GET /api/system/metrics/history: system_metrics history
+  - GET /api/system/intersections/history: intersection snapshot history
+  - GET /api/system/cameras: all camera statuses with merged data
+  - GET /api/system/weather: current weather from OpenWeatherMap
+  - GET /api/system/notifications: signal_logs + TomTom incidents as notifications
+  - GET /api/system/network: network overview with zone snapshots
+
+8.1.14 Other Backend Modules
+  - auth.py: Supabase JWT authentication via HTTPBearer
+  - health_api.py: /api/health, /api/health/live, /api/health/ready, /api/health/dependencies
+  - audit_api.py: GET /api/audit/logs (signal_logs with filtering)
+  - ingest_api.py: POST /api/ingest/stream/json, POST /api/ingest/batch/csv (bulk data ingestion)
+  - camera_config.py: 4-camera config with env var source overrides
+  - runtime_state.py: global runtime state tracking for all subsystems
+  - system_telemetry.py: Supabase telemetry persistence helper
+  - auto_scheduler.py: daily retraining scheduler (24h loop, runs retrain.py)
+  - retrain.py: historical data RL retraining pipeline
+  - fine_tune_yolov8.py: YOLOv8 fine-tuning on Indian traffic dataset (stub)
+
+8.2 FRONTEND PAGES (19 PAGES)
+===============================
+
+8.2.1 Landing.tsx             — Public landing page with project showcase
+8.2.2 Login.tsx               — Authentication (login/register) with Supabase Auth
+8.2.3 Dashboard.tsx           — Main command center with live telemetry widgets
+8.2.4 Analytics.tsx           — Traffic analytics with charts and performance metrics
+8.2.5 Agents.tsx              — AI agent command panel with chat and junction analysis
+8.2.6 LiveMap.tsx             — Leaflet-based real-time traffic map of Bangalore
+8.2.7 BangaloreTraffic.tsx    — Bangalore zone-level traffic overview
+8.2.8 CameraFeed.tsx          — Live CCTV camera feeds with vision status
+8.2.9 DigitalTwin.tsx         — Three.js 3D digital twin visualization
+8.2.10 TrafficPrediction.tsx  — Traffic congestion prediction interface
+8.2.11 Reports.tsx            — PDF report generation and download
+8.2.12 Notifications.tsx      — System notifications and alerts
+8.2.13 Settings.tsx           — Application settings management
+8.2.14 Profile.tsx            — User profile management
+8.2.15 Admin.tsx              — Admin panel
+8.2.16 Help.tsx               — Help and documentation
+8.2.17 ResetPassword.tsx      — Password reset flow
+8.2.18 AuthVerify.tsx         — Auth email verification callback
+8.2.19 NotFound.tsx           — 404 error page
+
+8.3 FRONTEND HOOKS (5 HOOKS)
+==============================
+
+8.3.1 useLiveTelemetry.ts    — WebSocket hook for real-time backend telemetry
+8.3.2 useTrafficDB.ts        — React Query hooks for Supabase CRUD operations
+8.3.3 useSystemStatus.ts     — System status and weather data hooks
+8.3.4 use-mobile.tsx         — Mobile responsive detection hook
+8.3.5 use-toast.ts           — Toast notification hook
+
+8.4 FRONTEND COMPONENTS (12+ COMPONENTS)
+==========================================
+
+8.4.1 Navbar.tsx              — Navigation bar with route links
+8.4.2 ProtectedRoute.tsx      — Auth-guarded route wrapper
+8.4.3 PageTransition.tsx      — Framer Motion page transitions
+8.4.4 SplashScreen.tsx        — App startup splash screen
+8.4.5 CursorParticles.tsx     — Interactive cursor particle effects
+8.4.6 Globe3D.tsx             — Three.js 3D globe visualization
+8.4.7 TrafficScene3D.tsx      — Three.js traffic intersection 3D scene
+8.4.8 SafeCanvas.tsx          — Error-safe Three.js canvas wrapper
+8.4.9 Starfield.tsx           — Animated starfield background
+8.4.10 ThemeToggle.tsx        — Dark/light theme toggle
+8.4.11 ErrorBoundary.tsx      — React error boundary
+8.4.12 NavLink.tsx            — Navigation link component
+8.4.13 Settings/ (directory)  — Settings-related sub-components
+8.4.14 ui/ (directory)        — Radix UI primitives (20+ components)
+
+
+================================================================================
+9. WORKING MECHANISM
+================================================================================
+
+9.1 STARTUP SEQUENCE
+---------------------
+  1. FastAPI app initializes (main.py)
+  2. Supabase client created with service role key
+  3. MultiCameraVisionManager starts all configured cameras (vision.py)
+  4. PPO RL model loaded from ppo_traffic_model.zip (rl_model.py)
+  5. Immediate TomTom API poll for all 9 grid nodes
+  6. Boot logs seeded into signal_logs table
+  7. Background tasks started: TomTom polling (60s), RAG auto-ingest (1h)
+
+9.2 REAL-TIME TELEMETRY LOOP (WebSocket)
+------------------------------------------
+  Every ~100ms (10 FPS):
+  1. Get vision snapshot from primary camera (YOLOv8)
+  2. Extract vehicle count, density, lane queues
+  3. If vision inactive, fallback to TomTom grid congestion
+  4. PPO RL model predicts optimal signal phase from lane queues
+  5. Check operator overrides (emergency, AI paused, manual phase)
+  6. Collect hardware metrics (CPU, memory via psutil)
+  7. Build telemetry payload and send via WebSocket
+  8. Every 5s: persist system_metrics + intersection_snapshots to Supabase
+  9. Every 30s: insert traffic_data row with weather correlation
+
+9.3 SIGNAL CONTROL LOGIC
+--------------------------
+  Priority Order:
+  1. If AI is paused → use manual_phase or default NS_GREEN
+  2. If emergency active → force green on dominant lane direction
+  3. Otherwise → PPO RL model prediction (NS_GREEN or EW_GREEN)
+
+9.4 COMMAND CENTER INTERACTION
+-------------------------------
+  - WebSocket supports bi-directional communication
+  - Operator can send commands: emergency toggle, AI pause, forced signal phase
+  - REST fallback: POST /api/command/control for same overrides
+  - All operator overrides logged to signal_logs in Supabase
+
+9.5 PREDICTION WORKFLOW
+-------------------------
+  1. GET /api/predict called with current_congestion
+  2. Fetch recent density history from intersection_snapshots
+  3. Calculate trend from last 2 data points
+  4. Project forward at 5-minute intervals up to 120 minutes
+  5. Apply per-junction trend delta to all zone snapshots
+  6. Generate AI recommendation based on peak predicted congestion
+
+
+================================================================================
+10. FEATURES (STRICTLY IMPLEMENTED IN CODE)
+================================================================================
+
+  [x] Real-time WebSocket telemetry stream (~10 FPS)
+  [x] YOLOv8 vehicle detection and counting (multi-camera support)
+  [x] Lane-wise queue analysis (north/south/east/west spatial quadrants)
+  [x] Emergency vehicle detection (truck class)
+  [x] PPO RL-based adaptive traffic signal control
+  [x] TomTom Traffic Flow API integration (9 grid nodes, 60s polling)
+  [x] TomTom Incidents API integration
+  [x] OpenWeatherMap API integration
+  [x] Supabase PostgreSQL database persistence
+  [x] JWT-based authentication (Supabase Auth)
+  [x] 11 Bangalore traffic zone monitoring with real GPS coordinates
+  [x] 10 junction live analysis (Silk Board, Marathahalli, Hebbal, etc.)
+  [x] 30-minute congestion forecasting (trend projection)
+  [x] AutoARIMA time-series forecasting (from DB history)
+  [x] Emergency green-wave corridor routing (junction-to-junction)
+  [x] Traffic incident/anomaly detection (density spike analysis)
+  [x] Public traffic alerts generation
+  [x] RAG-powered AI chatbot (Supabase vector store + live telemetry)
+  [x] Unified chat API (RAG + live context + fallback)
+  [x] PDF report generation (4 types: Full, Performance, Incident, Forecast)
+  [x] Operator command center with manual overrides
+  [x] Bulk data ingestion (JSON stream + CSV upload)
+  [x] Audit trail logging (signal_logs table)
+  [x] System health monitoring (4 health endpoints)
+  [x] Runtime state tracking for all subsystems
+  [x] Automated daily RL retraining scheduler
+  [x] YOLOv8 fine-tuning pipeline (Indian traffic dataset)
+  [x] Hot-reload of custom YOLO model weights
+  [x] Live CCTV frame streaming (JPEG endpoint per camera)
+  [x] Leaflet-based live traffic map
+  [x] Three.js 3D digital twin visualization
+  [x] Three.js 3D globe component
+  [x] Animated page transitions (Framer Motion)
+  [x] Splash screen with animations
+  [x] Cursor particle effects
+  [x] Starfield animated background
+  [x] Dark/light theme support
+  [x] Responsive design (mobile detection hook)
+  [x] Error boundary with graceful fallback
+  [x] Zod schema validation (frontend + API)
+  [x] Deterministic Bangalore baseline fallback (when APIs fail)
+  [x] Parallel zone data fetching (ThreadPoolExecutor)
+  [x] Notification system (signal_logs + incidents)
+  [x] User profile management
+  [x] Settings management
+  [x] Admin panel
+  [x] Password reset flow
+
+
+================================================================================
+11. LIMITATIONS (BASED ON CODE ANALYSIS)
+================================================================================
+
+11.1 YOLOv8 Fine-Tuning Dataset Not Included
+  - fine_tune_yolov8.py creates a STUB dataset.yaml
+  - No actual labeled Indian traffic images are in the repository
+  - The fine-tuning pipeline will catch exceptions and simulate weight deployment
+
+11.2 RAG Agent Uses MockEmbeddings
+  - agent.py uses MockEmbeddings (all-zeros 1536-dim vectors) as fallback
+  - Real OpenAI embeddings require OPENAI_API_KEY to be valid
+  - Vector similarity search with mock embeddings returns arbitrary results
+
+11.3 Emergency Corridor Uses Simple Routing
+  - prediction_api.py emergency corridor uses simple intermediate junction selection
+  - Comment in code: "in real system: Dijkstra on road graph"
+  - No actual road graph or shortest-path algorithm implemented
+
+11.4 TomTom API 403 Fallback
+  - TomTom API frequently returns 403 errors (key restrictions)
+  - System falls back to get_traffic_baseline() / get_bangalore_baseline()
+  - Baseline uses deterministic time-based patterns, not real traffic data
+
+11.5 Camera Sources Not Configured by Default
+  - All 4 camera sources depend on environment variables (CCTV_RTSP_URL_*)
+  - Without configured RTSP URLs, vision system enters "disconnected" state
+  - sample_traffic.mp4 available for testing but not auto-configured
+
+11.6 Auto-Scheduler is a Simple Loop
+  - auto_scheduler.py uses time.sleep(86400) instead of proper job scheduling
+  - Comment notes: "In Enterprise, replaced by Airflow DAGs or Kubernetes CronJobs"
+
+11.7 Daily Report Email is Simulated
+  - auto_scheduler.py send_daily_report_email() only prints to console
+  - No actual email sending (smtplib/SendGrid) is implemented
+
+11.8 Anomaly Health Monitor is Simulated
+  - auto_scheduler.py anomaly_health_monitor() only prints nominal status
+  - No actual DB queries for anomaly detection in the scheduler
+
+11.9 Historical Traffic Data Endpoints Return None
+  - traffic_api.py get_historical_traffic_data() returns all None values
+  - Source marked as "UNAVAILABLE" — no historical dataset bundled
+
+11.10 Emergency Vehicle Detection Heuristic
+  - vision.py detects emergency vehicles by class_id == 7 (truck)
+  - This is a proxy heuristic — no dedicated ambulance/fire-truck class trained
+
+11.11 OpenAI API Key Exposure Risk
+  - Backend .env contains actual API keys (OpenAI, TomTom, Supabase, OpenWeatherMap)
+  - These are committed to the repository and should be rotated
+
+
+================================================================================
+12. CONCLUSION
+================================================================================
+
+Traffic.AI demonstrates a comprehensive, production-oriented smart traffic
+management system architecture for the Bangalore metropolitan area. The project
+successfully integrates:
+
+  - Real-time computer vision (YOLOv8) for vehicle detection and counting
+  - Reinforcement learning (PPO) for adaptive signal phase optimization
+  - Time-series forecasting (AutoARIMA + trend projection) for congestion prediction
+  - External API integration (TomTom + OpenWeatherMap) for live traffic and weather data
+  - A full-stack web application (React + FastAPI + Supabase) with 19 pages and 20+ API endpoints
+  - Real-time bi-directional WebSocket telemetry at 10 FPS
+  - Comprehensive operator tools including command center, audit logs, and PDF reports
+
+The system covers 11 major Bangalore traffic zones with real GPS coordinates and
+provides both live API data and calibrated baseline fallbacks. The architecture
+supports multi-camera management, hot-reload of model weights, continuous RL
+retraining, and bulk data ingestion.
+
+Key limitations include the absence of a labeled Indian traffic dataset for YOLO
+fine-tuning, mock embeddings in the RAG agent, simplified emergency routing logic,
+and simulated scheduler functions. The API keys in the repository should be
+rotated for production deployment.
+
+The project represents a strong foundation for a real-world smart traffic system
+that combines multiple AI techniques with modern web technologies and cloud
+database services.
+
+================================================================================
+================================================================================
+
+                         PPT CONTENT SECTION
+                    (Slide-wise Bullet Points)
+
+================================================================================
+
+
+SLIDE 1 — TITLE SLIDE
+-----------------------
+  • Title: Traffic.AI — Agentic AI-Based Smart Traffic Management System
+  • Subtitle: Smart City Traffic Command Center for Bangalore
+  • Tech Stack: FastAPI | React | Supabase | YOLOv8 | PPO RL
+  • City: Bangalore, Karnataka, India
+
+
+SLIDE 2 — PROBLEM STATEMENT
+-----------------------------
+  • Bangalore experiences severe traffic congestion at major junctions
+  • Key bottlenecks: Silk Board, Marathahalli, Hebbal, KR Puram, Electronic City
+  • Traditional fixed-timer signals cause inefficient traffic flow
+  • No centralized real-time monitoring and adaptive control system
+  • Emergency vehicles face delays due to static signal control
+
+
+SLIDE 3 — SYSTEM OVERVIEW
+---------------------------
+  • Multi-Agent AI architecture for traffic management
+  • Real-time computer vision with YOLOv8 for vehicle counting
+  • Reinforcement Learning (PPO) for adaptive signal optimization
+  • 11 Bangalore traffic zones monitored with live GPS data
+  • WebSocket-based real-time telemetry at 10 FPS
+  • Supabase PostgreSQL for persistent data storage
+
+
+SLIDE 4 — SYSTEM ARCHITECTURE
+-------------------------------
+  • Frontend: React 18 + TypeScript + Vite + TailwindCSS + Framer Motion
+  • Backend: Python 3.10+ FastAPI + Uvicorn + WebSocket
+  • Database: Supabase (PostgreSQL) with 7 core tables
+  • AI/ML: YOLOv8, PPO (Stable Baselines3), AutoARIMA, LangChain RAG
+  • External APIs: TomTom Traffic Flow, OpenWeatherMap
+  • Data Flow: Cameras → YOLO → FastAPI → RL Model → WebSocket → React
+
+
+SLIDE 5 — AI MODELS
+---------------------
+  • YOLOv8n: Vehicle detection (car, motorcycle, bus, truck), 15 FPS
+  • PPO RL: Signal phase optimization (NS_GREEN vs EW_GREEN)
+  • AutoARIMA: 30-minute traffic congestion forecasting
+  • RAG Agent: AI chatbot with Supabase vector store + live telemetry
+  • YOLOv8 Fine-Tuning Pipeline: Custom Indian traffic classes (auto-rickshaw, tempo)
+  • Continuous Learning: Daily RL retraining on historical DB data
+
+
+SLIDE 6 — DATA SOURCES
+------------------------
+  • TomTom Traffic Flow API: real-time speed and congestion for 9+ grid nodes
+  • TomTom Incidents API: live traffic incident detection
+  • OpenWeatherMap API: weather conditions, temperature, visibility
+  • Supabase PostgreSQL: 7 tables for telemetry, logs, snapshots, metrics
+  • CCTV/RTSP Cameras: 4 configured camera streams (multi-camera management)
+  • Pre-trained Models: yolov8n.pt (6.5 MB), ppo_traffic_model.zip (139 KB)
+
+
+SLIDE 7 — KEY FEATURES
+------------------------
+  • Real-time WebSocket telemetry (10 FPS) with live dashboard
+  • YOLOv8 multi-camera vehicle detection with lane-wise queue analysis
+  • PPO RL adaptive signal control with emergency override system
+  • Leaflet-based live traffic map with congestion heatmap
+  • Three.js 3D digital twin visualization
+  • Emergency green-wave corridor routing (junction-to-junction)
+  • 4-type PDF report generation (Full, Performance, Incident, Forecast)
+  • AI chatbot with RAG and live traffic context
+
+
+SLIDE 8 — FRONTEND MODULES (19 PAGES)
+---------------------------------------
+  • Landing Page: public showcase with project overview
+  • Dashboard: real-time command center with telemetry widgets
+  • Analytics: traffic charts and performance metrics
+  • Agents: AI agent panel with junction-specific chat
+  • Live Map: Leaflet map with Bangalore traffic overlay
+  • Camera Feed: live CCTV streams with YOLOv8 annotations
+  • Digital Twin: 3D city model with Three.js
+  • Reports: PDF generation and download
+  • Prediction: traffic congestion forecast interface
+  • + Settings, Profile, Admin, Notifications, Help, Auth pages
+
+
+SLIDE 9 — BACKEND ARCHITECTURE
+--------------------------------
+  • FastAPI with 20+ API modules and 30+ endpoints
+  • WebSocket /ws/telemetry for real-time bi-directional communication
+  • TomTom API polling every 60s for 9 Bangalore grid nodes
+  • Supabase persistence: system_metrics (5s), traffic_data (30s)
+  • Parallel zone fetching with ThreadPoolExecutor (9 workers)
+  • JWT authentication via Supabase Auth + HTTPBearer
+  • Global exception handler with clean JSON 500 responses
+
+
+SLIDE 10 — TRAFFIC SIGNAL CONTROL
+-----------------------------------
+  • Signal Decision Priority:
+    1. Manual mode: operator-forced phase
+    2. Emergency mode: green on dominant lane direction
+    3. AI mode: PPO RL model prediction from lane queues
+  • Action Space: NS_GREEN (0) or EW_GREEN (1)
+  • Observation: [North, South, East, West] vehicle queue counts
+  • Reward: minimize total queue + fairness variance penalty
+  • Fallback: default NS_GREEN when model unavailable
+
+
+SLIDE 11 — FORECASTING & PREDICTION
+--------------------------------------
+  • 30-minute traffic prediction using trend projection
+  • AutoARIMA model on historical density series from Supabase
+  • 5-minute interval forecasts with congestion levels
+  • Per-junction forecast with speed predictions
+  • AI-generated recommendations based on peak predicted congestion
+  • Anomaly detection: density spike > 20% flagged as incident
+
+
+SLIDE 12 — LIMITATIONS
+------------------------
+  • YOLOv8 fine-tuning dataset (Indian vehicles) not included
+  • RAG agent uses MockEmbeddings (requires valid OpenAI key)
+  • Emergency corridor uses simple routing (no Dijkstra/road graph)
+  • TomTom API 403 fallback uses deterministic baseline patterns
+  • Camera sources must be configured via environment variables
+  • Auto-scheduler uses sleep loop (not Airflow/CronJob)
+  • Email reporting and anomaly monitoring are simulated
+
+
+SLIDE 13 — FUTURE SCOPE
+--------------------------
+  (Based on architectural patterns present in code)
+  • Production deployment with real Bangalore CCTV feeds
+  • Full OpenAI integration for RAG chatbot embeddings
+  • Dijkstra-based road graph for emergency corridor routing
+  • Airflow/Kubernetes for scheduled retraining pipelines
+  • Labeled Indian traffic dataset for YOLO fine-tuning
+  • SendGrid integration for automated report emails
+  • TimescaleDB for time-series optimized storage
+
+
+SLIDE 14 — TECHNOLOGY STACK SUMMARY
+--------------------------------------
+  • Frontend: React 18, TypeScript, Vite 5, TailwindCSS, Framer Motion
+  • Backend: Python 3.10+, FastAPI, Uvicorn, WebSocket
+  • AI/ML: YOLOv8, PPO (Stable Baselines3), AutoARIMA, LangChain
+  • Database: Supabase (PostgreSQL)
+  • APIs: TomTom Traffic Flow, OpenWeatherMap
+  • 3D: Three.js, React Three Fiber
+  • Maps: Leaflet, React-Leaflet
+  • Charts: Recharts
+  • PDF: ReportLab
+  • Testing: Vitest, Testing Library
+
+
+SLIDE 15 — CONCLUSION
+-----------------------
+  • Traffic.AI is a comprehensive smart traffic management system
+  • Combines computer vision, reinforcement learning, and time-series forecasting
+  • Covers 11 major Bangalore junctions with real GPS coordinates
+  • Full-stack: 19 React pages + 20+ FastAPI endpoints + Supabase
+  • Real-time monitoring with 10 FPS WebSocket telemetry
+  • Strong foundation for production smart city deployment
+  • Demonstrates multi-agent AI architecture for urban mobility optimization
+
+================================================================================
+                           END OF REPORT
+================================================================================
