@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import SmartRecommendations from "@/components/SmartRecommendations";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -167,15 +168,15 @@ export default function Dashboard() {
       return;
     }
     try {
-      const resp = await fetchApi("/api/emergency/corridor", {
+      const resp = await fetchApi("/api/command/emergency/corridor", {
         method: "POST",
-        body: JSON.stringify({ origin_junction: emergencySource.toLowerCase().replace("_", "-"), destination_junction: emergencyDest.toLowerCase().replace("_", "-"), vehicle_type: "Ambulance" })
+        body: JSON.stringify({ origin: emergencySource.toLowerCase().replace("_", "-"), destination: emergencyDest.toLowerCase().replace("_", "-"), vehicle_type: "Ambulance" })
       });
       setEmergency(true);
-      setEmergencyRoute(`Path: ${resp.signal_overrides.map((s: any) => s.junction_name).join(" ➞ ")}`);
+      setEmergencyRoute(`Path: ${(resp.path || resp.signal_overrides?.map((s: any) => s.junction_name) || []).join(" ➞ ")}`);
       postControl({ emergency: true });
       sendCommand({ simRunning, emergency: true, mode });
-      toast.success(resp.message);
+      toast.success(resp.message || `Emergency corridor activated: ${(resp.path || []).join(" → ")}`);
     } catch {
       // Activate emergency locally even if corridor API is unavailable
       setEmergency(true);
@@ -469,6 +470,9 @@ export default function Dashboard() {
           </motion.div>
         </div>
 
+        {/* AI Control Hub */}
+        <SmartRecommendations />
+
         {/* Bottom Row */}
         <div className="grid lg:grid-cols-3 gap-6">
           {/* System Logs */}
@@ -479,7 +483,7 @@ export default function Dashboard() {
               </h3>
               <span className="text-xs font-mono text-muted-foreground">{simRunning ? "Recording..." : "Start sim..."}</span>
             </div>
-            <div className="bg-background/30 rounded-xl p-4 font-mono text-xs space-y-1.5 h-64 overflow-y-auto border border-border/20">
+            <div className="bg-background/30 rounded-xl p-4 font-mono text-xs space-y-1.5 h-64 overflow-y-auto custom-scrollbar pr-2 border border-border/20">
               {logs && logs.length > 0 ? logs.map((log) => {
                 const logDate = log.created_at ? new Date(log.created_at) : new Date();
                 return (
@@ -507,7 +511,7 @@ export default function Dashboard() {
               </span>
             </div>
             <div className="flex-1 bg-background/30 rounded-xl flex flex-col border border-border/20 h-64 overflow-hidden">
-              <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3 text-sm font-mono">
+              <div ref={chatContainerRef} className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 text-sm font-mono">
                 {chatMessages.length === 0 && (
                   <div className="flex flex-col gap-1">
                     <span className="text-xs text-primary font-bold">NEXUS-AI:</span>

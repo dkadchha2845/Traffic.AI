@@ -158,7 +158,7 @@ export default function Reports() {
         {/* Reports Table */}
         <motion.div variants={fadeIn} initial="hidden" animate="visible" className="glass rounded-2xl p-6">
           <h3 className="font-heading text-xs uppercase tracking-[0.2em] text-muted-foreground mb-4">Recent Reports</h3>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto custom-scrollbar pb-2">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs font-mono text-muted-foreground uppercase border-b border-border/30 tracking-wider">
@@ -210,7 +210,7 @@ export default function Reports() {
               <span className="w-2 h-2 rounded-full bg-success animate-pulse-glow" />
               Live Data Timeline ({trafficData.length} records)
             </h3>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
+            <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar pr-2">
               {trafficData.slice(0, 15).map((td) => (
                 <div key={td.id} className="flex items-center gap-4 bg-secondary/30 rounded-xl px-4 py-3 border border-border/20">
                   <div className="w-2 h-2 rounded-full bg-primary animate-pulse-glow" />
@@ -233,7 +233,7 @@ export default function Reports() {
             <h3 className="font-heading text-xs uppercase tracking-[0.2em] text-muted-foreground mb-4">
               Agent Audit Trail ({logsData.length} entries)
             </h3>
-            <div className="space-y-1.5 max-h-48 overflow-y-auto">
+            <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-2">
               {logsData.slice(0, 10).map((log) => (
                 <div key={log.id} className="flex gap-3 text-xs font-mono bg-secondary/20 rounded px-3 py-1.5">
                   <span className="text-muted-foreground shrink-0">{format(new Date(log.created_at), "HH:mm:ss")}</span>

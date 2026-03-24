@@ -379,7 +379,7 @@ export default function Analytics() {
                 <button className="px-3 py-1 text-[10px] uppercase tracking-wider font-mono bg-primary text-primary-foreground">Live</button>
               </div>
             </div>
-            <div className="overflow-x-auto flex-1 h-[200px] overflow-y-auto">
+            <div className="overflow-x-auto flex-1 h-[200px] overflow-y-auto custom-scrollbar pr-2">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="font-mono text-muted-foreground uppercase border-b border-border/50 sticky top-0 bg-background/90 backdrop-blur">

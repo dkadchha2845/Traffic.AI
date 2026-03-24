@@ -664,7 +664,7 @@ export default function CommandCenter() {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto space-y-3 pr-1 mb-3 scrollbar-thin">
+            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2 mb-3">
               {messages.map((msg, i) => (
                 <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                   <div className={`max-w-[85%] rounded-xl px-4 py-2.5 text-sm ${
@@ -700,7 +700,7 @@ export default function CommandCenter() {
             </div>
 
             {/* Quick prompts */}
-            <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+            <div className="flex gap-2 mb-3 overflow-x-auto custom-scrollbar pb-2">
               {["Current congestion?", "Best alternate route?", "Signal timing now?", "Why is traffic high?"].map(q => (
                 <button key={q} onClick={() => { setChatInput(q); }}
                   className="shrink-0 px-3 py-1 text-[11px] font-mono bg-secondary/50 border border-border/30 rounded-full text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors whitespace-nowrap">
@@ -739,7 +739,7 @@ export default function CommandCenter() {
               </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-1.5 font-mono text-xs pr-1 scrollbar-thin">
+            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1.5 font-mono text-xs pr-2">
               {logs && logs.length > 0 ? (
                 logs.map((log: any, i: number) => (
                   <motion.div key={log.id || i}
